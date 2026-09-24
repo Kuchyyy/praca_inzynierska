@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+dane/
+*.parquet
+*.pbf
+.DS_Store
+
+NOTATKI_DO_PRACY.txt
+JAK_TO_DZIALA.txt
+komendy.txt
+komendy_pr.txt

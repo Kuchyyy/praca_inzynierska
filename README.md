@@ -86,4 +86,3 @@ do_excela.py                    eksport próbki do CSV
 ```
 
 Opis cech i dalszych etapów jest w `CECHY.md`.
-# Praca_in-ynierska

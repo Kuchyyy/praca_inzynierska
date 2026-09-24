@@ -1,0 +1,6 @@
+.venv/
+dane/
+__pycache__/
+.git/
+*.pyc
+.pytest_cache/
