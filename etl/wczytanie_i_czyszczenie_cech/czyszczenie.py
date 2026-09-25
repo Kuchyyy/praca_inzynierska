@@ -1,7 +1,7 @@
 import os
 
 import config
-from etl import raport
+from etl.wczytanie_i_czyszczenie_cech import raport
 
     # Identyfikator dzialki wyglada tak: 021001_1.0005.AR_17.35/2
     #                                    |  |  |  | |    |

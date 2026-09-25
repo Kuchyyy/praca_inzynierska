@@ -1,12 +1,13 @@
 import os
 
 import config
-from etl.wczytywanie import wczytaj_dane
-from etl.czyszczenie import wyczysc, dokoncz_czyszczenie
-from etl.geometria import dodaj_geometrie
-from etl.cechy_podstawowe import dodaj_cechy_podstawowe
-from etl.cechy_geometryczne import dodaj_cechy_geometryczne
-from etl.raport import pokaz_podsumowanie
+from etl.cechy_osm.odleglosci import dodaj_odleglosci_osm
+from etl.wczytanie_i_czyszczenie_cech.cechy_geometryczne import dodaj_cechy_geometryczne
+from etl.wczytanie_i_czyszczenie_cech.cechy_podstawowe import dodaj_cechy_podstawowe
+from etl.wczytanie_i_czyszczenie_cech.czyszczenie import dokoncz_czyszczenie, wyczysc
+from etl.wczytanie_i_czyszczenie_cech.geometria import dodaj_geometrie
+from etl.wczytanie_i_czyszczenie_cech.raport import pokaz_podsumowanie
+from etl.wczytanie_i_czyszczenie_cech.wczytywanie import wczytaj_dane
 
 
 def przygotuj_katalogi():
@@ -26,6 +27,7 @@ def uruchom():
 
     df = dodaj_cechy_podstawowe(df)
     df = dodaj_cechy_geometryczne(df)
+    df = dodaj_odleglosci_osm(df)
 
     sciezka = os.path.join(config.SCIEZKA_GOTOWE, "dane_z_cechami.parquet")
     df.drop(columns=["geometry"]).to_parquet(sciezka, index=False)

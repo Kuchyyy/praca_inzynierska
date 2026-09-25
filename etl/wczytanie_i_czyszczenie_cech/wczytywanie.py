@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 import config
-from etl import raport
+from etl.wczytanie_i_czyszczenie_cech import raport
 
 
 def wczytaj_dane():

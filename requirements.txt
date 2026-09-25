@@ -2,3 +2,6 @@ pandas
 pyarrow
 numpy
 shapely
+scipy
+geopandas
+pyrosm

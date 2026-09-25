@@ -8,6 +8,15 @@ SCIEZKA_GOTOWE = "dane/gotowe"
 
 WOJEWODZTWO = "02"
 
+# Kod TERYT województwa -> plik OSM i zapisane warstwy.
+# Kolejne województwo to nowy plik na dysku i jeden wpis tutaj.
+OSM_WOJEWODZTWA = {
+    "02": {
+        "pbf": "dolnoslaskie-260913.osm.pbf",
+        "warstwy": "warstwy_osm_02.parquet",
+    },
+}
+
 
 ROK_OD = 2015
 
