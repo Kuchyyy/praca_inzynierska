@@ -74,12 +74,8 @@ config.py                       ścieżki i progi
 main.py                         kolejność etapów
 CECHY.md                        opis każdej cechy
 
-etl/wczytywanie.py              wczytanie pliku Parquet
-etl/czyszczenie.py              filtry
-etl/geometria.py                granice działki i jednostki powierzchni
-etl/cechy_podstawowe.py         cechy z kolumn pliku
-etl/cechy_geometryczne.py       cechy z kształtu działki
-etl/raport.py                   statystyki
+etl/wczytanie_i_czyszczenie_cech/   wczytanie, filtry, geometria, cechy z pliku
+etl/cechy_osm/                     odległości z OpenStreetMap
 
 zobacz.py                       podgląd gotowych danych
 do_excela.py                    eksport próbki do CSV
