@@ -2,6 +2,7 @@ import os
 
 import config
 from etl.cechy_osm.odleglosci import dodaj_odleglosci_osm
+from etl.uldk.srodki import dodaj_srodki_uldk
 from etl.wczytanie_i_czyszczenie_cech.cechy_geometryczne import dodaj_cechy_geometryczne
 from etl.wczytanie_i_czyszczenie_cech.cechy_podstawowe import dodaj_cechy_podstawowe
 from etl.wczytanie_i_czyszczenie_cech.czyszczenie import dokoncz_czyszczenie, wyczysc
@@ -27,6 +28,7 @@ def uruchom():
 
     df = dodaj_cechy_podstawowe(df)
     df = dodaj_cechy_geometryczne(df)
+    df = dodaj_srodki_uldk(df)
     df = dodaj_odleglosci_osm(df)
 
     sciezka = os.path.join(config.SCIEZKA_GOTOWE, "dane_z_cechami.parquet")
