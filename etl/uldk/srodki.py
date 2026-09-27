@@ -64,8 +64,10 @@ def dodaj_srodki_uldk(dane):
 
     po_id = zapis.drop_duplicates("dzi_id_dzialki").set_index("dzi_id_dzialki")
     uzupelnij = dane["x_2180"].isna() | dane["y_2180"].isna()
-    dane.loc[uzupelnij, "x_2180"] = dane.loc[uzupelnij, "dzi_id_dzialki"].map(po_id["x_2180"])
-    dane.loc[uzupelnij, "y_2180"] = dane.loc[uzupelnij, "dzi_id_dzialki"].map(po_id["y_2180"])
+    nowe_x = dane.loc[uzupelnij, "dzi_id_dzialki"].map(po_id["x_2180"])
+    nowe_y = dane.loc[uzupelnij, "dzi_id_dzialki"].map(po_id["y_2180"])
+    dane.loc[uzupelnij, "x_2180"] = nowe_x.to_numpy(dtype="float64", na_value=float("nan"))
+    dane.loc[uzupelnij, "y_2180"] = nowe_y.to_numpy(dtype="float64", na_value=float("nan"))
 
     doszlo = int((dane.loc[brak, "x_2180"].notna() & dane.loc[brak, "y_2180"].notna()).sum())
     print(f"  dopisano srodek dla {doszlo:,} dzialek")
