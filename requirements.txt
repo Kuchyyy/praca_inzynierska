@@ -5,3 +5,5 @@ shapely
 scipy
 geopandas
 pyrosm
+scikit-learn
+pyproj

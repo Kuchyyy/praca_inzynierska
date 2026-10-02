@@ -1,18 +1,20 @@
 # Sciezki i progi. Zmiany ustawien robie tutaj.
 
-SCIEZKA_SUROWE = "dane/surowe/02_transakcje_ceny_dzialki.parquet"
-SCIEZKA_POSREDNIE = "dane/posrednie"
-SCIEZKA_ODRZUCONE = "dane/posrednie/odrzucone"
-SCIEZKA_GOTOWE = "dane/gotowe"
+SCIEZKA_SUROWE = "db/dane/surowe/rcn/0_transakcje_ceny_dzialki.parquet"
+SCIEZKA_OCZYSZCZONE = "db/dane/gotowe/polska_oczyszczone"
+DATA_DO = "2026-10-02"
+WIELKOSC_PARTII = 25000
+ZAPAS_DYSKU_GIB = 10
+SCIEZKA_POSREDNIE = "db/dane/posrednie"
+SCIEZKA_ODRZUCONE = "db/dane/posrednie/odrzucone"
+SCIEZKA_GOTOWE = "db/dane/gotowe"
 
-
-WOJEWODZTWO = "02"
 
 # Kod TERYT województwa -> plik OSM i zapisane warstwy.
-# Kolejne województwo to nowy plik na dysku i jeden wpis tutaj.
+# Cache starego etapu cech. Czyszczenie krajowe nie czyta OSM.
 OSM_WOJEWODZTWA = {
     "02": {
-        "pbf": "dolnoslaskie-260913.osm.pbf",
+        "pbf": "db/dane/surowe/osm/dolnoslaskie-260913.osm.pbf",
         "warstwy": "warstwy_osm_02.parquet",
     },
 }
@@ -20,43 +22,38 @@ OSM_WOJEWODZTWA = {
 
 ROK_OD = 2015
 
-ROK_MIN_SENSOWNY = 1995
-ROK_MAX_SENSOWNY = 2026
-
-CENA_MIN = 1000
-
-
 POWIERZCHNIA_MIN = 100
 POWIERZCHNIA_MAX = 200000
 
-
-CENA_M2_MIN = 1
-CENA_M2_MAX = 5000
-
-PROG_HEKTARY = 30
 
 # Dopuszczalny stosunek powierzchni z pliku do pola z geometrii.
 TOLERANCJA_POLA_DOL = 0.80
 TOLERANCJA_POLA_GORA = 1.25
 
 
-PERCENTYL_DOL = 0.01
-PERCENTYL_GORA = 0.99
-
-# Ponizej tej liczebnosci grupa nie dostaje wlasnych percentyli.
-MIN_LICZEBNOSC_GRUPY = 50
-
-
 KOLUMNY_POTRZEBNE = [
     "teryt",
+    "serwis_rcn",
+    "tran_przestrzen_nazw",
+    "tran_wersja_id",
     "tran_lokalny_id_iip",
     "tran_rodzaj_trans",
     "tran_sprzedajacy",
+    "tran_kupujacy",
+    "tran_rodzaj_rynku",
+    "tran_vat",
     "tran_cena_brutto",
     "dok_data",
     "nier_rodzaj",
     "nier_prawo",
+    "nier_udzial",
+    "nier_pow_gruntu",
+    "nier_cena_brutto",
+    "nier_vat",
     "dzi_id_dzialki",
+    "dzi_nr_dzialki",
+    "dzi_cena_brutto",
+    "dzi_vat",
     "dzi_przezn_wmpzp",
     "dzi_pow_ewid",
     "dzi_sposob_uzyt",
