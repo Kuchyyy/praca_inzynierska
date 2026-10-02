@@ -1,7 +1,9 @@
+import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import BayesianRidge, LinearRegression
-from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.tree import DecisionTreeRegressor
 
 
@@ -35,21 +37,26 @@ for nazwa in dane.columns:
     if pd.api.types.is_numeric_dtype(dane[nazwa]):
         kolumny.append(nazwa)
 
-modele = {
-    "liniowa": LinearRegression(),
-    "bayesowska": BayesianRidge(),
-    "drzewo": DecisionTreeRegressor(max_depth=12, min_samples_leaf=20, random_state=1),
-    "las": RandomForestRegressor(
+models = [
+    LinearRegression(),
+    BayesianRidge(),
+    DecisionTreeRegressor(max_depth=12, min_samples_leaf=20, random_state=1),
+    RandomForestRegressor(
         n_estimators=100,
         max_depth=12,
         min_samples_leaf=20,
         n_jobs=-1,
         random_state=1,
     ),
-}
+]
 
-print("PIERWSZY MODEL")
-print("-" * 78)
+model_names = [
+    "Linear Regression",
+    "Bayesian Ridge",
+    "Decision Tree",
+    "Random Forest",
+]
+
 print(f"Podzial po dacie: test od {prog}")
 print(f"Uczenie: {len(uczenie):,}   test: {len(test):,}   cech: {len(kolumny)}")
 print("Osobny model na kazdy sposob uzytkowania")
@@ -57,9 +64,13 @@ print()
 
 rodzaje = sorted(uczenie["sposob_uzytkowania"].dropna().unique())
 
-for nazwa_modelu in modele:
-    print(nazwa_modelu)
-    print("-" * 78)
+wyniki_mae = np.zeros(len(models))
+wyniki_rmse = np.zeros(len(models))
+wyniki_r2 = np.zeros(len(models))
+wyniki_n = np.zeros(len(models), dtype=int)
+
+for j, model in enumerate(models):
+    print(f"=== {model_names[j]} ===")
 
     wszystkie_prawdziwe = []
     wszystkie_przewidywane = []
@@ -78,28 +89,46 @@ for nazwa_modelu in modele:
         y_ucz = ucz["cena_m2"]
         y_tst = tst["cena_m2"]
 
-        model = modele[nazwa_modelu].__class__(**modele[nazwa_modelu].get_params())
-        model.fit(x_ucz, y_ucz)
-        przewidywane = model.predict(x_tst)
+        model_fit = clone(model)
+        model_fit.fit(x_ucz, y_ucz)
+        przewidywane = model_fit.predict(x_tst)
 
-        blad = mean_absolute_error(y_tst, przewidywane)
+        mae = mean_absolute_error(y_tst, przewidywane)
+        rmse = np.sqrt(mean_squared_error(y_tst, przewidywane))
         r2 = r2_score(y_tst, przewidywane) if len(tst) > 1 else float("nan")
-        mediana_ceny = y_tst.median()
         print(
             f"  {rodzaj:<40} n={len(tst):>5,}   "
-            f"mediana {mediana_ceny:7.1f}   "
-            f"blad {blad:7.2f} zl/m2   "
-            f"R2 {r2:6.3f}"
+            f"MAE: {mae:7.2f}   "
+            f"RMSE: {rmse:7.2f}   "
+            f"R2: {r2:6.3f}"
         )
 
         wszystkie_prawdziwe.extend(y_tst.tolist())
         wszystkie_przewidywane.extend(przewidywane.tolist())
 
     if wszystkie_prawdziwe:
-        blad = mean_absolute_error(wszystkie_prawdziwe, wszystkie_przewidywane)
-        r2 = r2_score(wszystkie_prawdziwe, wszystkie_przewidywane)
-        print(f"  {'RAZEM':<40} n={len(wszystkie_prawdziwe):>5,}   "
-              f"{'':16}"
-              f"blad {blad:7.2f} zl/m2   "
-              f"R2 {r2:6.3f}")
+        y_true = np.array(wszystkie_prawdziwe)
+        y_pred = np.array(wszystkie_przewidywane)
+        wyniki_mae[j] = mean_absolute_error(y_true, y_pred)
+        wyniki_rmse[j] = np.sqrt(mean_squared_error(y_true, y_pred))
+        wyniki_r2[j] = r2_score(y_true, y_pred)
+        wyniki_n[j] = len(y_true)
+        print(
+            f"  {'RAZEM':<40} n={wyniki_n[j]:>5,}   "
+            f"MAE: {wyniki_mae[j]:7.2f}   "
+            f"RMSE: {wyniki_rmse[j]:7.2f}   "
+            f"R2: {wyniki_r2[j]:6.3f}"
+        )
     print()
+
+print("=== Ranking modeli po MAE ===")
+kolejnosc = np.argsort(wyniki_mae)
+for i in kolejnosc:
+    if wyniki_n[i] == 0:
+        continue
+    print(
+        f"{model_names[i]} | "
+        f"MAE: {wyniki_mae[i]:.3f} | "
+        f"RMSE: {wyniki_rmse[i]:.3f} | "
+        f"R2: {wyniki_r2[i]:.3f}"
+    )
