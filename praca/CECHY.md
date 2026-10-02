@@ -1,3 +1,22 @@
+> Bieżący etap — czyszczenie krajowego RCN
+>
+> `main.py` wykonuje teraz tylko czyszczenie partiami. Zapisuje GeoParquet
+> z geometrią i podstawowymi wielkościami, bez percentyli cen, ULDK i OSM.
+> Zasady opisuje README w głównym katalogu. Stary zbiór 76 346 wierszy
+> i 64 kolumn pozostaje historycznym wynikiem, nie wynikiem nowego ETL.
+> Cechy i modele opisane niżej wymagają jeszcze podłączenia do nowego zbioru.
+
+> Aktualizacja zakresu — 02.10.2026
+>
+> Dalej rozwijamy RCN, geometrię, sąsiedztwo cenowe oraz OSM: drogi,
+> miejscowości, zabudowę, środowisko i usługi. GUS, powodzie, NMT,
+> dodatkowe dane planistyczne i BDOT10k są poza aktualnym zakresem.
+> Poniżej zachowano wcześniejsze rozważania i pomiary. Podane wagi są
+> oceną autora, nie wynikiem eksperymentów ani rankingiem ważności modelu.
+> Kod ma obecnie 6 cech sąsiedztwa, 5 odległości OSM i uzupełnianie środków
+> z ULDK. Gotowy lokalny zbiór ma 76 346 wierszy i 64 kolumny.
+> Dalsze cechy OSM opisane poniżej to propozycje, a nie gotowa implementacja.
+
 # Cechy — skąd pochodzą i jak je policzyć
 
 Dokument opisuje każdą cechę używaną do przewidywania ceny działki: z czego powstaje,
@@ -33,7 +52,7 @@ Suma: **38 kolumn z wagą > 0** (prawdziwe cechy) + **14 z wagą 0** + **1 targe
 
 | Lp | Kolumna | Co przedstawia | Waga |
 |---|---|---|---|
-| 1 | `teryt` | Surowy kod powiatu z pliku RCN — bywa niespójny z `dzi_id_dzialki` (150/1 184 944 wierszy, 0,013% — patrz `NOTATKI_DO_PRACY.txt` pkt 1), zastąpiony przez `teryt_powiat`/`teryt_gmina` | 0 |
+| 1 | `teryt` | Surowy kod powiatu z pliku RCN — bywa niespójny z `dzi_id_dzialki` (150/1 184 944 wierszy, 0,013% — patrz `prywatne/NOTATKI_DO_PRACY.txt` pkt 1), zastąpiony przez `teryt_powiat`/`teryt_gmina` | 0 |
 | 2 | `id_transakcji` | Unikalny identyfikator transakcji z RCN (`tran_lokalny_id_iip`) — 76 346 unikalnych wartości, tyle co wierszy | 0 |
 | 3 | `tran_rodzaj_trans` | Rodzaj transakcji — po filtrze krok_07 zawsze `"wolnyRynek"`, zero wariancji | 0 |
 | 4 | `sprzedajacy` | Kto sprzedał: osoba fizyczna / prawna / Skarb Państwa / JST / inne — 5 kategorii | 5 |
@@ -158,7 +177,7 @@ rekordów. Pozostałe 10,2% dostanie `NaN` albo trzeba im najpierw dociągnąć 
 
 ## Grupa D — z OpenStreetMap (27 cech, wagi 5–8)
 
-**Źródło: `dolnoslaskie-260913.osm.pbf` — plik już jest na dysku (180 MB).**
+**Źródło: `db/dane/surowe/osm/dolnoslaskie-260913.osm.pbf` — plik już jest na dysku (180 MB).**
 **Potrzebne dodatkowo: `pyrosm`, `geopandas`, `scipy`.**
 
 Zawartość pliku (policzona):

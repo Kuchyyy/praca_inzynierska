@@ -2,4 +2,4 @@ services:
   etl:
     build: .
     volumes:
-      - ./dane:/app/dane
+      - ./db/dane:/app/db/dane

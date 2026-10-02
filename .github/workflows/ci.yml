@@ -29,31 +29,7 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Test
-        run: |
-          python - <<'PY'
-          import os
-          import pandas as pd
-
-          os.makedirs("dane/surowe", exist_ok=True)
-          pd.DataFrame([{
-              "teryt": "0210",
-              "tran_lokalny_id_iip": "t-1",
-              "tran_rodzaj_trans": "wolnyRynek",
-              "tran_sprzedajacy": "osobaFizyczna",
-              "tran_cena_brutto": 100000,
-              "dok_data": pd.Timestamp("2020-06-01"),
-              "nier_rodzaj": "nieruchomoscGruntowaNiezabudowana",
-              "nier_prawo": "wlasnosc",
-              "dzi_id_dzialki": "021001_1.0005.AR_17.35/2",
-              "dzi_przezn_wmpzp": "budownictwoMieszkanioweJednorodzinne",
-              "dzi_pow_ewid": 0.1,
-              "dzi_sposob_uzyt": "gruntyOrne",
-              "dzi_adres": "MSC:Wroclaw;UL:Legnicka;NR_PORZ:5",
-              "geometry": None,
-          }]).to_parquet("dane/surowe/02_transakcje_ceny_dzialki.parquet", index=False)
-          PY
-          python main.py
-          test -f dane/gotowe/dane_z_cechami.parquet
+        run: python -m unittest discover -s tests -v
 
       - name: Build
         run: docker build -t praca-etl .
