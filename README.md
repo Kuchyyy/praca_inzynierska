@@ -1,8 +1,10 @@
 # Predykcja cen działek — przygotowanie danych
 
 Bieżący etap czyści krajowy Rejestr Cen Nieruchomości partiami. Zapisuje
-jeden GeoParquet z geometrią, powierzchnią i ceną za m² oraz małe raporty.
-Nie pobiera danych, nie liczy OSM ani sąsiedztwa cenowego i nie uczy modeli.
+jeden GeoParquet z transakcjami i flagami jakości oraz małe raporty.
+Odrzuca nieznane udziały, zachowuje braki geometrii i korzysta z zapisanego
+cache ULDK i opcjonalnie pobiera pełne granice. Nie liczy jeszcze OSM,
+sąsiedztwa cenowego ani modeli.
 
 ## Uruchomienie
 
@@ -19,20 +21,28 @@ Domyślne źródło: `db/dane/surowe/rcn/0_transakcje_ceny_dzialki.parquet`.
 Wynik: `db/dane/gotowe/polska_oczyszczone/`.
 Data odcięcia jest jawna: `2026-10-02`, ustawiona w `config.py`.
 
-Przebieg z 02.10.2026: **14 795 036 surowych wierszy → 488 960 transakcji**
-ze wszystkich 16 województw. Parquet wyniku zajmuje 111,47 MB; obliczenia
-trwały około 353 sekund. Są to wyniki opisanych poniżej, ostrożnych filtrów,
-a nie liczba wszystkich sprzedaży gruntów w kraju.
+Wynik uwzględnia pełne i częściowe, jednoznacznie zapisane udziały.
+Braki geometrii pozostają do uzupełnienia. Do dalszego przygotowania modeli
+służy filtr `do_modelu`. Nie pobrano jeszcze wszystkich brakujących granic.
 
-Przykład dla Dolnego Śląska, nadal z kontrolą składu transakcji w całym kraju:
+Przeliczenie z 03.10.2026 po zmianie zasad udziałów: **802 857** rekordów,
+w tym **525 478** z `do_modelu = true` i **277 379** do uzupełnienia lub
+weryfikacji. Odrzucono 136 968 rekordów z nieznanym lub błędnym udziałem.
+Zachowano 51 826 udziałów częściowych; 36 514 spełnia warunki modelowania.
+Dolny Śląsk: 62 401 rekordów. Plik ma 150 526 942 bajty.
+Nie wykonano nowych zapytań ULDK. Poprzedni wynik pozostaje w
+`db/dane/gotowe/polska_oczyszczone_przed_filtrem_udzialow/`.
 
-```bash
-python main.py --wojewodztwo 02 --wyjscie db/dane/gotowe/dolnoslaskie_oczyszczone
-```
-
-Można też podać `--wejscie`, `--data-do YYYY-MM-DD` i `--partia 25000`.
-Istniejący katalog wyniku nie jest nadpisywany. Do ponownego porównania
-należy podać nowy `--wyjscie`, uwzględniając miejsce na dysku.
+Uruchomienie nie wymaga opcji z `--`. Ustawienia zmieniamy w `config.py`:
+`WOJEWODZTWO = None` oznacza Polskę, a `"02"` Dolny Śląsk.
+`LIMIT_ULDK = 0` używa tylko cache; większa liczba ogranicza nowe zapytania.
+Ścieżki, datę odcięcia i wielkość partii ustawiamy w tym samym pliku.
+`main.py` wywołuje etapy kolejno: czyszczenie RCN, pobranie brakujących
+granic i przeliczenie po ULDK. Istniejący oczyszczony wynik jest używany
+ponownie. Żeby zmienić filtry i przeliczyć źródło, ustaw nową `SCIEZKA_OCZYSZCZONE`.
+`UZUPELNIJ_ULDK = False` wyłącza dwa ostatnie etapy — obecnie pobieranie
+działa już osobno. Włączenie wymaga ustawienia `True`, gdy nie działa druga
+kopia pobierania. OSM i trening nie są jeszcze podłączone do krajowego przepływu.
 
 Docker używa tego samego katalogu danych:
 
@@ -49,9 +59,15 @@ docker compose up --build
 - Identyczne wpisy są scalane z pominięciem technicznego `gid`, bbox i adresu
   usługi. Różne wersje lub sprzeczne wpisy tej samej transakcji są odrzucane;
   kod nie wybiera automatycznie „najnowszego” fragmentu transakcji.
-- Zostają grunty niezabudowane, wolny rynek i potwierdzony pełny udział.
-  Brak udziału, udziały częściowe, błędne lub wielokrotne wpisy są osobno
-  liczone w raporcie. Ceny udziałów nie są mnożone przez odwrotność ułamka.
+- Zostają grunty niezabudowane i wolny rynek. Zachowujemy pełny udział
+  oraz pojedynczy udział częściowy z zakresu (0, 1]. Brak, błędny zapis
+  i wiele wpisów udziałów powodują odrzucenie rekordu. Puste pole nie oznacza 1/1.
+  `udzial_sprzedany` przechowuje ułamek jako liczbę, a oryginalny zapis pozostaje
+  w `nier_udzial`. Cena za m² to `tran_cena_brutto / (powierzchnia_m2 * udzial_sprzedany)`.
+  `cena_przeliczona_z_udzialu` oznacza udział częściowy. To proporcjonalne
+  przeliczenie, nie potwierdzona cena sprzedaży całej nieruchomości; przy
+  modelowaniu trzeba porównać jakość z wariantem korzystającym tylko z pełnych udziałów.
+  Źródłowa cena transakcji i powierzchnia całej działki nie są zmieniane.
 - Data musi mieścić się od 2015 roku do daty odcięcia włącznie.
   Cena musi być dodatnia i skończona. Jeśli podano także dodatnią cenę
   nieruchomości lub działki, musi odpowiadać cenie transakcji z tolerancją 1 gr.
@@ -62,14 +78,50 @@ docker compose up --build
   Geometria rozstrzyga, czy powierzchnia ewidencyjna jest w m² czy hektarach,
   z dotychczasową tolerancją 0,80–1,25. Brak/błędna powierzchnia ewidencyjna
   może być zastąpiona polem geometrii z oznaczeniem źródła. Rozbieżność obu
-  wartości albo brak geometrii wyklucza rekord z tego zbioru.
-- Zakres badania pozostaje 100–200 000 m². Nie ma progów ceny całkowitej,
+  wartości albo brak geometrii pozostawia rekord z pustą powierzchnią
+  i oznaczeniem do wyjaśnienia. Nie zgadujemy jednostki.
+- Zakres modelowania pozostaje 100–200 000 m². Rekordy poza nim także
+  zostają w pliku, ale mają `do_modelu = false`. Nie ma progów ceny całkowitej,
   progów ceny za m² ani usuwania skrajnych percentyli. Statystyczne
   filtrowanie cen należy dopasować dopiero na zbiorze treningowym.
 
-To ostrożny zbiór do dalszych prac, a nie gwarancja poprawności wszystkich
-transakcji. Odrzucone rekordy nadal istnieją w surowym pliku. Zmiana zasad
-nie wymaga ponownego pobierania danych.
+`do_modelu` wymaga znanego udziału, zweryfikowanej powierzchni w zakresie
+oraz poprawnej ceny za m². To gotowość danych podstawowych, nie dowód pełnej
+poprawności transakcji. `status_jakosci` i `powody_wstrzymania` wyjaśniają
+braki. `ma_srodek` wskazuje, czy można liczyć odległości. Brak zweryfikowanej
+powierzchni daje puste `cena_m2`, nie zero ani zgadywaną cenę.
+
+Pozostałe filtry struktury transakcji, dat i cen działają jak wcześniej.
+Odrzucone przez nie rekordy nadal są w surowym pliku.
+
+## ULDK: środki i pełne granice
+
+Najpierw używana jest poprawna geometria RCN. Gdy jej brakuje, program
+sprawdza cache pełnych granic `db/dane/posrednie/uldk_granice.sqlite`.
+Następnie do brakujących współrzędnych dobiera istniejące środki z
+`uldk_srodki.parquet`. Stary plik ze środkami nie jest zmieniany.
+
+Środek wystarcza do odległości, ale nie potwierdza pola ani kształtu.
+Pełne granice ULDK są używane przed ustaleniem powierzchni i gotowości
+rekordu. `zrodlo_geometrii`, `zrodlo_srodka` i `uldk_pobrano_utc` pokazują
+pochodzenie danych. ULDK zwraca bieżącą geometrię — nie zakładamy, że
+odpowiada ona granicom z daty historycznej sprzedaży.
+
+Przykład stopniowego uzupełniania (maksymalnie 1000 nowych zapytań):
+
+```bash
+# W config.py: LIMIT_ULDK = 1000 oraz nowa SCIEZKA_OCZYSZCZONE
+python main.py
+```
+
+Limit jest wspólny dla całego uruchomienia. Każda odpowiedź jest zapisywana
+od razu, a kolejne uruchomienie pomija już pobrane granice. Błędy i brak
+wyniku mogą być ponownie sprawdzone po dobie; nie oznaczają trwałego
+nieistnienia działki. Stare puste środki nie blokują pobierania granic.
+W nowym pliku pojawi się całość transakcji z uwzględnieniem aktualnego cache.
+
+Zapytania mają jawne EPSG:2180; sprawdzamy zwrócony identyfikator i geometrię.
+Format opisuje [dokumentacja ULDK](https://uldk.gugik.gov.pl/opis.html).
 
 ## Pamięć i pliki
 
@@ -86,9 +138,9 @@ oraz dodatkowy margines przed kolejną partią.
 | Plik wyniku | Zawartość |
 |---|---|
 | `transakcje.parquet` | Oczyszczone transakcje, geometria i podstawowe wielkości |
-| `raport_czyszczenia.csv` | Rozłączne powody odrzucenia, duplikaty i liczba zaakceptowanych |
-| `rozklad_gruntow.csv` | Liczebności według województwa i sposobu użytkowania |
-| `podsumowanie.json` | Parametry uruchomienia, liczebności, czas i rozmiar wyniku |
+| `raport_czyszczenia.csv` | Rozłączne powody odrzucenia, duplikaty i liczba zachowanych |
+| `rozklad_gruntow.csv` | Liczebności według województwa, użytkowania i flagi `do_modelu` |
+| `podsumowanie.json` | Parametry, liczebności i jakość, źródła środków, zapytania ULDK, czas i rozmiar |
 
 Suma wierszy raportu odpowiada liczbie wierszy surowych. Wynik zachowuje
 kolumny źródłowe. `klucz_transakcji` identyfikuje transakcję globalnie,
@@ -97,8 +149,9 @@ identyfikuje obręb. GeoParquet zachowuje CRS; stare bbox nie jest kopiowane.
 
 ## Kolejne etapy i stare wyniki
 
-W `etl/cechy_osm/`, `etl/sasiedztwo_cenowe/` oraz `etl/uldk/` pozostaje kod
-wcześniejszego eksperymentu. Wymaga dostosowania przed użyciem na całej Polsce.
+W `etl/cechy_osm/` i `etl/sasiedztwo_cenowe/` pozostaje kod wcześniejszego
+eksperymentu. Wymaga dostosowania przed użyciem na całej Polsce.
+ULDK jest już podłączone do nowego czyszczenia.
 `model/pierwszy.py`, `zobacz.py` i `do_excela.py` nadal czytają wcześniejszy
 `db/dane/gotowe/dane_z_cechami.parquet`, którego nowe czyszczenie nie nadpisuje.
 Nie są jeszcze podłączone do nowego zbioru.
@@ -118,3 +171,27 @@ python -m unittest discover -s tests -v
 Testy korzystają z małych sztucznych plików, bez sieci i bez krajowych danych.
 Sprawdzają skład transakcji między partiami, klucze, wersje, udziały, ceny,
 daty, geometrię, niezależność od przyszłych transakcji i ochronę plików.
+Testy ULDK obejmują ponowne użycie cache, limit zapytań, błędy usługi,
+weryfikację identyfikatora i CRS oraz rozróżnienie środka od granic.
+
+## Uzupełnienie brakujących granic w całym zbiorze
+
+`python -m etl.uldk.uzupelnij` zbiera unikalne identyfikatory działek bez
+geometrii z aktualnego wyniku i pobiera ich granice kolejno do cache SQLite.
+Po zakończeniu automatycznie przelicza źródłowy RCN do
+`db/dane/gotowe/polska_po_uldk/`, pozostawiając poprzedni wynik.
+Postęp zapisuje w `db/dane/posrednie/uldk_postep.json` co 20 działek.
+Ponowne uruchomienie korzysta z pobranych granic. Błędy mogą być ponowione
+po dobie. Dwadzieścia kolejnych błędów sieci zatrzymuje proces.
+Komputer musi działać z dostępem do internetu; uśpienie wstrzymuje pracę.
+
+Podgląd trwającego pobierania w drugim terminalu:
+
+```bash
+.venv312/bin/python postep.py
+```
+
+Pokazuje liczbę sprawdzonych działek, pozostałe, znalezione granice i czas
+pozostały do końca pobierania. Szacunek powstaje z tempa od otwarcia podglądu,
+po pierwszych nowych wynikach. Zakończenie podglądu przez Ctrl+C nie zatrzymuje
+pobierania. Po pobraniu następuje osobne przeliczenie RCN (dotąd około 6 minut).

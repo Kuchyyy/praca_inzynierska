@@ -36,7 +36,9 @@ def jakie_kolumny(df):
             print()
     print()
 
-    print(f"\nPlus {len(przeznaczenia)} kolumn 0/1 z przeznaczeniem w planie miejscowym.")
+    print(
+        f"\nPlus {len(przeznaczenia)} kolumn 0/1 z przeznaczeniem w planie miejscowym."
+    )
 
 
 def przyklady(df, ile=8):
@@ -45,8 +47,12 @@ def przyklady(df, ile=8):
     print("-" * 78)
 
     kolumny = [
-        "data_transakcji", "miejscowosc", "powierzchnia_m2",
-        "cena_brutto", "cena_m2", "sposob_uzytkowania",
+        "data_transakcji",
+        "miejscowosc",
+        "powierzchnia_m2",
+        "cena_brutto",
+        "cena_m2",
+        "sposob_uzytkowania",
     ]
 
     proba = df.sample(ile, random_state=42)[kolumny]
@@ -64,12 +70,16 @@ def ceny(df):
 
     print()
     print("Wedlug sposobu uzytkowania:")
-    wedlug = df.groupby("sposob_uzytkowania")["cena_m2"].agg(["count", "median", "mean"])
+    wedlug = df.groupby("sposob_uzytkowania")["cena_m2"].agg(
+        ["count", "median", "mean"]
+    )
     wedlug = wedlug.sort_values("count", ascending=False)
 
     for uzytek, wiersz in wedlug.iterrows():
-        print(f"  {uzytek:<32} {int(wiersz['count']):>7,} szt.   "
-              f"mediana {wiersz['median']:>7.2f}   srednia {wiersz['mean']:>8.2f}")
+        print(
+            f"  {uzytek:<32} {int(wiersz['count']):>7,} szt.   "
+            f"mediana {wiersz['median']:>7.2f}   srednia {wiersz['mean']:>8.2f}"
+        )
 
 
 def najdrozsze_i_najtansze(df, ile=5):
@@ -77,7 +87,13 @@ def najdrozsze_i_najtansze(df, ile=5):
     print(f"{ile} NAJDROZSZYCH DZIALEK (za metr)")
     print("-" * 78)
 
-    kolumny = ["miejscowosc", "powierzchnia_m2", "cena_brutto", "cena_m2", "sposob_uzytkowania"]
+    kolumny = [
+        "miejscowosc",
+        "powierzchnia_m2",
+        "cena_brutto",
+        "cena_m2",
+        "sposob_uzytkowania",
+    ]
     print(df.nlargest(ile, "cena_m2")[kolumny].to_string(index=False))
 
     print()
@@ -98,10 +114,14 @@ def gdzie_najwiecej(df, ile=15):
     )
     wedlug_gminy = wedlug_gminy.sort_values("transakcji", ascending=False).head(ile)
 
-    print(f"  {'gmina':<10} {'transakcji':>11} {'mediana zl/m2':>15} {'mediana m2':>12}")
+    print(
+        f"  {'gmina':<10} {'transakcji':>11} {'mediana zl/m2':>15} {'mediana m2':>12}"
+    )
     for gmina, wiersz in wedlug_gminy.iterrows():
-        print(f"  {gmina:<10} {int(wiersz['transakcji']):>11,} "
-              f"{wiersz['mediana_ceny']:>15.2f} {wiersz['mediana_powierzchni']:>12,.0f}")
+        print(
+            f"  {gmina:<10} {int(wiersz['transakcji']):>11,} "
+            f"{wiersz['mediana_ceny']:>15.2f} {wiersz['mediana_powierzchni']:>12,.0f}"
+        )
 
 
 def przeznaczenia(df):
@@ -142,8 +162,10 @@ def lejek():
 
     for _, wiersz in raport.iterrows():
         odpada = "-" if wiersz["krok"] == 0 else f"{wiersz['odpada']:,}"
-        print(f"  {wiersz['krok']:>2}. {wiersz['opis']:<38} "
-              f"zostaje {wiersz['zostaje']:>9,}   odpada {odpada:>9}")
+        print(
+            f"  {wiersz['krok']:>2}. {wiersz['opis']:<38} "
+            f"zostaje {wiersz['zostaje']:>9,}   odpada {odpada:>9}"
+        )
 
 
 df = wczytaj()

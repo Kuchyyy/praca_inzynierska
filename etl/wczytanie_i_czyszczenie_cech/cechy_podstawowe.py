@@ -16,9 +16,14 @@ def dodaj_przeznaczenie(df):
 
     print(f"  znaleziono {len(wszystkie)} kategorii przeznaczenia w planie miejscowym")
 
-
-    zbiory = df["dzi_przezn_wmpzp"].fillna("").apply(
-        lambda tekst: set(czesc.strip() for czesc in tekst.split(";")) if tekst else set()
+    zbiory = (
+        df["dzi_przezn_wmpzp"]
+        .fillna("")
+        .apply(
+            lambda tekst: (
+                set(czesc.strip() for czesc in tekst.split(";")) if tekst else set()
+            )
+        )
     )
 
     for kategoria in wszystkie:
@@ -48,21 +53,25 @@ def dodaj_miejscowosc(df):
     df["miejscowosc"] = df["miejscowosc"].str.strip().str.upper()
 
     ile = df["miejscowosc"].notna().sum()
-    print(f"  odczytano miejscowosc dla {ile:,} transakcji ({100 * ile / len(df):.1f}%)")
+    print(
+        f"  odczytano miejscowosc dla {ile:,} transakcji ({100 * ile / len(df):.1f}%)"
+    )
 
     return df
 
 
 def zmien_nazwy(df):
     # Skroty z pliku na czytelniejsze nazwy kolumn.
-    df = df.rename(columns={
-        "dzi_sposob_uzyt": "sposob_uzytkowania",
-        "nier_prawo": "prawo",
-        "tran_sprzedajacy": "sprzedajacy",
-        "tran_cena_brutto": "cena_brutto",
-        "dok_data": "data_transakcji",
-        "tran_lokalny_id_iip": "id_transakcji",
-    })
+    df = df.rename(
+        columns={
+            "dzi_sposob_uzyt": "sposob_uzytkowania",
+            "nier_prawo": "prawo",
+            "tran_sprzedajacy": "sprzedajacy",
+            "tran_cena_brutto": "cena_brutto",
+            "dok_data": "data_transakcji",
+            "tran_lokalny_id_iip": "id_transakcji",
+        }
+    )
 
     return df
 

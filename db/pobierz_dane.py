@@ -10,7 +10,6 @@ from urllib.request import Request, urlopen
 
 import pyarrow.parquet as pq
 
-
 KATALOG = Path(__file__).resolve().parent / "dane"
 ZAPAS = 10 * 1024**3
 PLIKI = [
@@ -38,13 +37,24 @@ def sprawdz(plik, oczekiwany_md5):
 
     if ".parquet" in plik.name:
         parquet = pq.ParquetFile(plik)
-        wymagane = {"tran_lokalny_id_iip", "tran_przestrzen_nazw", "dzi_id_dzialki", "geometry"}
+        wymagane = {
+            "tran_lokalny_id_iip",
+            "tran_przestrzen_nazw",
+            "dzi_id_dzialki",
+            "geometry",
+        }
         if not wymagane.issubset(parquet.schema_arrow.names):
             raise ValueError("Nieoczekiwany schemat RCN")
         geo = json.loads(parquet.schema_arrow.metadata[b"geo"])
         proba = next(parquet.iter_batches(batch_size=5))
-        print(f"  RCN: {parquet.metadata.num_rows:,} wierszy, {len(parquet.schema_arrow)} kolumn", flush=True)
-        print(f"  GeoParquet {geo['version']}, proba: {proba.num_rows} wierszy", flush=True)
+        print(
+            f"  RCN: {parquet.metadata.num_rows:,} wierszy, {len(parquet.schema_arrow)} kolumn",
+            flush=True,
+        )
+        print(
+            f"  GeoParquet {geo['version']}, proba: {proba.num_rows} wierszy",
+            flush=True,
+        )
     else:
         with plik.open("rb") as dane:
             rozmiar = struct.unpack(">I", dane.read(4))[0]
@@ -53,7 +63,9 @@ def sprawdz(plik, oczekiwany_md5):
             naglowek = dane.read(rozmiar)
             if not naglowek.startswith(b"\x0a\x09OSMHeader"):
                 raise ValueError("Brak OSMHeader w PBF")
-        print(f"  PBF: OSMHeader ({rozmiar} bajtow), MD5 zgodne z Geofabrik", flush=True)
+        print(
+            f"  PBF: OSMHeader ({rozmiar} bajtow), MD5 zgodne z Geofabrik", flush=True
+        )
     return sha256.hexdigest()
 
 
@@ -71,7 +83,12 @@ def pobierz():
             rozmiar = int(odpowiedz.headers["Content-Length"])
             etag = odpowiedz.headers.get("ETag")
             zmieniony = odpowiedz.headers.get("Last-Modified")
-            wersja = {"url": odpowiedz.url, "rozmiar": rozmiar, "etag": etag, "last_modified": zmieniony}
+            wersja = {
+                "url": odpowiedz.url,
+                "rozmiar": rozmiar,
+                "etag": etag,
+                "last_modified": zmieniony,
+            }
 
         md5 = None
         if nazwa.endswith(".pbf"):
@@ -98,16 +115,37 @@ def pobierz():
             raise ValueError("Plik czesciowy jest wiekszy od zrodla")
         if shutil.disk_usage(KATALOG).free - (rozmiar - start) < ZAPAS:
             raise RuntimeError("Za malo miejsca: po pobraniu musi zostac 10 GiB")
-        print(f"Pobieram {cel.name}: {rozmiar:,} bajtow, wznowienie od {start:,}", flush=True)
+        print(
+            f"Pobieram {cel.name}: {rozmiar:,} bajtow, wznowienie od {start:,}",
+            flush=True,
+        )
 
         if start != rozmiar:
-            naglowki = {"Range": f"bytes={start}-", "If-Range": walidator} if start else {}
+            naglowki = (
+                {"Range": f"bytes={start}-", "If-Range": walidator} if start else {}
+            )
             with urlopen(Request(url, headers=naglowki), timeout=120) as odpowiedz:
-                if start and (odpowiedz.status != 206 or not odpowiedz.headers.get("Content-Range", "").startswith(f"bytes {start}-")):
-                    raise RuntimeError("Serwer nie potwierdzil wznowienia tej samej wersji")
-                if int(odpowiedz.headers.get("Content-Length", rozmiar - start)) != rozmiar - start:
+                if start and (
+                    odpowiedz.status != 206
+                    or not odpowiedz.headers.get("Content-Range", "").startswith(
+                        f"bytes {start}-"
+                    )
+                ):
+                    raise RuntimeError(
+                        "Serwer nie potwierdzil wznowienia tej samej wersji"
+                    )
+                if (
+                    int(odpowiedz.headers.get("Content-Length", rozmiar - start))
+                    != rozmiar - start
+                ):
                     raise RuntimeError("Rozmiar zrodla zmienil sie przed pobraniem")
-                if walidator and odpowiedz.headers.get("ETag" if walidator == etag else "Last-Modified") != walidator:
+                if (
+                    walidator
+                    and odpowiedz.headers.get(
+                        "ETag" if walidator == etag else "Last-Modified"
+                    )
+                    != walidator
+                ):
                     raise RuntimeError("Wersja zrodla zmienila sie przed pobraniem")
                 opis.write_text(json.dumps(wersja, indent=2) + "\n")
                 with czesc.open("ab" if start else "wb") as dane:
@@ -115,7 +153,9 @@ def pobierz():
                     ostatni_raport = start
                     while kawalek := odpowiedz.read(4 * 1024**2):
                         if shutil.disk_usage(KATALOG).free - len(kawalek) < ZAPAS:
-                            raise RuntimeError("Przerwano pobieranie, zostawiam 10 GiB zapasu")
+                            raise RuntimeError(
+                                "Przerwano pobieranie, zostawiam 10 GiB zapasu"
+                            )
                         dane.write(kawalek)
                         zapisano += len(kawalek)
                         if zapisano - ostatni_raport >= 256 * 1024**2:
@@ -125,14 +165,22 @@ def pobierz():
         if czesc.stat().st_size != rozmiar:
             raise ValueError("Niepelny plik, pozostawiam .part")
         suma = sprawdz(czesc, md5)
-        zrodla[nazwa] = {**wersja, "pobrano_utc": datetime.now(timezone.utc).isoformat(), "sha256": suma, "md5": md5}
+        zrodla[nazwa] = {
+            **wersja,
+            "pobrano_utc": datetime.now(timezone.utc).isoformat(),
+            "sha256": suma,
+            "md5": md5,
+        }
         # Wpis przed zmiana nazwy pozwala dokonczyc zapis po przerwaniu.
         tymczasowy = wykaz.with_suffix(".json.part")
         tymczasowy.write_text(json.dumps(zrodla, indent=2, ensure_ascii=False) + "\n")
         tymczasowy.replace(wykaz)
         czesc.rename(cel)
         opis.unlink()
-        print(f"Zapisano {cel.name}. Wolne: {shutil.disk_usage(KATALOG).free / 1024**3:.2f} GiB", flush=True)
+        print(
+            f"Zapisano {cel.name}. Wolne: {shutil.disk_usage(KATALOG).free / 1024**3:.2f} GiB",
+            flush=True,
+        )
 
 
 if __name__ == "__main__":

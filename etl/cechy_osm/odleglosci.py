@@ -6,7 +6,6 @@ from scipy.spatial import cKDTree
 
 import config
 
-
 KOLUMNY = [
     "odl_wroclaw_m",
     "odl_miasto_pow_50k_m",
@@ -24,7 +23,7 @@ def dodaj_odleglosci_osm(dane):
     for kolumna in KOLUMNY:
         dane[kolumna] = np.nan
 
-    if not ma_kolumne(dane, "teryt_woj") or not ma_kolumne(dane, "x_2180"):
+    if "teryt_woj" not in dane.columns or "x_2180" not in dane.columns:
         print("  brak wspolrzednych, odleglosci puste")
         return dane
 
@@ -43,41 +42,25 @@ def dodaj_odleglosci_osm(dane):
         wiersze = czesc.index[ma_wspolrzedne]
         wspolrzedne = czesc.loc[ma_wspolrzedne, ["x_2180", "y_2180"]].to_numpy()
 
-        dane = dodaj_odl_wroclaw(dane, wiersze, wspolrzedne, warstwy, kod)
-        dane = dodaj_odl_miasto_pow_50k(dane, wiersze, wspolrzedne, warstwy)
-        dane = dodaj_odl_najblizsza_miejscowosc(dane, wiersze, wspolrzedne, warstwy)
-        dane = dodaj_odl_szkola(dane, wiersze, wspolrzedne, warstwy)
-        dane = dodaj_odl_sklep_spozywczy(dane, wiersze, wspolrzedne, warstwy)
+        cechy = [
+            ("odl_wroclaw_m", "wroclaw"),
+            ("odl_miasto_pow_50k_m", "miasto_50k"),
+            ("odl_najblizsza_miejscowosc_m", "miejscowosc"),
+            ("odl_szkola_m", "szkola"),
+            ("odl_sklep_spozywczy_m", "sklep"),
+        ]
 
-        print(f"  {kod}: policzono odleglosci dla {int(ma_wspolrzedne.sum()):,} dzialek")
+        for kolumna, warstwa in cechy:
+            if warstwa == "wroclaw" and str(kod) != "02":
+                continue
 
-    return dane
+            punkty = punkty_warstwy(warstwy, warstwa)
+            dane.loc[wiersze, kolumna] = odleglosci(wspolrzedne, punkty)
 
+        print(
+            f"  {kod}: policzono odleglosci dla {int(ma_wspolrzedne.sum()):,} dzialek"
+        )
 
-def dodaj_odl_wroclaw(dane, wiersze, wspolrzedne, warstwy, kod):
-    if str(kod) != "02":
-        return dane
-    dane.loc[wiersze, "odl_wroclaw_m"] = odleglosci(wspolrzedne, punkty_warstwy(warstwy, "wroclaw"))
-    return dane
-
-
-def dodaj_odl_miasto_pow_50k(dane, wiersze, wspolrzedne, warstwy):
-    dane.loc[wiersze, "odl_miasto_pow_50k_m"] = odleglosci(wspolrzedne, punkty_warstwy(warstwy, "miasto_50k"))
-    return dane
-
-
-def dodaj_odl_najblizsza_miejscowosc(dane, wiersze, wspolrzedne, warstwy):
-    dane.loc[wiersze, "odl_najblizsza_miejscowosc_m"] = odleglosci(wspolrzedne, punkty_warstwy(warstwy, "miejscowosc"))
-    return dane
-
-
-def dodaj_odl_szkola(dane, wiersze, wspolrzedne, warstwy):
-    dane.loc[wiersze, "odl_szkola_m"] = odleglosci(wspolrzedne, punkty_warstwy(warstwy, "szkola"))
-    return dane
-
-
-def dodaj_odl_sklep_spozywczy(dane, wiersze, wspolrzedne, warstwy):
-    dane.loc[wiersze, "odl_sklep_spozywczy_m"] = odleglosci(wspolrzedne, punkty_warstwy(warstwy, "sklep"))
     return dane
 
 
@@ -119,7 +102,9 @@ def zbuduj_warstwy(sciezka_mapy):
     surowe_szkoly = mapa.get_pois(custom_filter={"amenity": ["school"]})
     szkoly = do_punktow(surowe_szkoly)
 
-    surowe_sklepy = mapa.get_pois(custom_filter={"shop": ["supermarket", "convenience"]})
+    surowe_sklepy = mapa.get_pois(
+        custom_filter={"shop": ["supermarket", "convenience"]}
+    )
     sklepy = do_punktow(surowe_sklepy)
 
     kawalki = [
@@ -140,7 +125,9 @@ def warstwa_wroclaw(punkty):
         return pusta()
     nazwa = kolumna(punkty, "name").str.casefold()
     rodzaj = kolumna(punkty, "place")
-    return z_maski(punkty, ((nazwa == "wrocław") & (rodzaj == "city")).to_numpy(), "wroclaw")
+    return z_maski(
+        punkty, ((nazwa == "wrocław") & (rodzaj == "city")).to_numpy(), "wroclaw"
+    )
 
 
 def warstwa_miasto_pow_50k(punkty):
@@ -171,17 +158,13 @@ def warstwa_sklep_spozywczy(punkty):
 
 
 def kolumna(punkty, nazwa):
-    if not ma_kolumne(punkty, nazwa):
+    if nazwa not in punkty.columns:
         return pd.Series("", index=punkty.index)
     return punkty[nazwa].fillna("").astype(str)
 
 
-def ma_kolumne(ramka, nazwa):
-    return nazwa in ramka.columns
-
-
 def do_punktow(obiekty):
-    if obiekty is None or len(obiekty) == 0 or not ma_kolumne(obiekty, "geometry"):
+    if obiekty is None or len(obiekty) == 0 or "geometry" not in obiekty.columns:
         return None
     obiekty = obiekty.to_crs(2180)
     geometria = obiekty["geometry"]

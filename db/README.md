@@ -66,7 +66,12 @@ Krajowy RCN jest domyślnym wejściem `python main.py`. Czyszczenie czyta go
 dwukrotnie partiami i używa usuwanego na końcu indeksu SQLite. Zapisuje
 `gotowe/polska_oczyszczone/transakcje.parquet` i trzy małe raporty.
 Nie tworzy kopii etapów ani plików odrzuconych rekordów.
+Odrzuca nieznane udziały; dla znanych przelicza cenę przez powierzchnię i udział.
+Zachowuje braki geometrii z flagą `do_modelu` oraz przyczyną wstrzymania.
 
 Krajowy OSM pozostaje źródłem do następnego etapu. Czyszczenie nie czyta
-PBF, nie wywołuje ULDK i nie liczy jeszcze cech otoczenia. Parametry,
+PBF i nie liczy jeszcze cech otoczenia. Korzysta z cache środków ULDK,
+a z ustawieniem `LIMIT_ULDK` w `config.py` także pobiera i zachowuje pełne granice
+w `posrednie/uldk_granice.sqlite`. ULDK jest aktualnym źródłem geometrii,
+nie archiwum granic z dat sprzedaży. Parametry,
 zasady odrzucania danych i testy opisano w głównym [README](../README.md).

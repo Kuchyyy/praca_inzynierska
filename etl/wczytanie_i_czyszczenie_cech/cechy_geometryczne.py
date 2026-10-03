@@ -17,7 +17,9 @@ def dodaj_cechy_geometryczne(df):
 
     # Wspolrzedne i pole sa juz z modulu geometria.
     ma_wspolrzedne = df["x_2180"].notna().sum()
-    print(f"  wspolrzedne srodka dzialki: {ma_wspolrzedne:,} ({100 * ma_wspolrzedne / len(df):.1f}%)")
+    print(
+        f"  wspolrzedne srodka dzialki: {ma_wspolrzedne:,} ({100 * ma_wspolrzedne / len(df):.1f}%)"
+    )
 
     zwarte = df["wskaznik_zwartosci"].dropna()
     print(f"  wskaznik zwartosci - mediana: {zwarte.median():.3f}")
