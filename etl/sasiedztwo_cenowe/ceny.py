@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
 
-
 KOLUMNY = [
     "mediana_cena_m2_2km_ten_sam_uzytek",
     "mediana_cena_m2_2km_24m",
@@ -26,10 +25,14 @@ def dodaj_sasiedztwo_cenowe(dane):
         return dane
 
     dopisz_mediane_grupy(dane, dane["teryt_gmina"], "mediana_cena_m2_gmina")
-    dopisz_mediane_grupy(dane, obreb_z_identyfikatora(dane["dzi_id_dzialki"]), "mediana_cena_m2_obreb")
+    dopisz_mediane_grupy(
+        dane, obreb_z_identyfikatora(dane["dzi_id_dzialki"]), "mediana_cena_m2_obreb"
+    )
     dopisz_sasiedztwo_na_mapie(dane)
 
-    print(f"  gmina wypelniona w {dane['mediana_cena_m2_gmina'].notna().sum():,} wierszach")
+    print(
+        f"  gmina wypelniona w {dane['mediana_cena_m2_gmina'].notna().sum():,} wierszach"
+    )
     return dane
 
 
@@ -39,11 +42,13 @@ def obreb_z_identyfikatora(identyfikatory):
 
 
 def dopisz_mediane_grupy(dane, grupy, nazwa_cechy):
-    ramka = pd.DataFrame({
-        "grupa": grupy,
-        "data": dane["data_transakcji"],
-        "cena": dane["cena_m2"],
-    })
+    ramka = pd.DataFrame(
+        {
+            "grupa": grupy,
+            "data": dane["data_transakcji"],
+            "cena": dane["cena_m2"],
+        }
+    )
     ramka = ramka.dropna(subset=["grupa", "data", "cena"])
 
     for _, czesc in ramka.groupby("grupa"):
@@ -102,7 +107,7 @@ def dopisz_sasiedztwo_na_mapie(dane):
 
         indeksy = indeksy[wczesniej]
         roznica = xy[indeksy] - xy[i]
-        dystans = np.sqrt((roznica ** 2).sum(axis=1))
+        dystans = np.sqrt((roznica**2).sum(axis=1))
 
         w_oknie = daty[indeksy] >= od_24[i]
         if not w_oknie.any():

@@ -1,25 +1,45 @@
-import argparse
 from datetime import date
+from pathlib import Path
 
 import config
-from etl.wczytanie_i_czyszczenie_cech.czyszczenie import WOJEWODZTWA
+from etl.uldk.uzupelnij import pobierz_brakujace_granice, przelicz_po_uldk
 from etl.wczytanie_i_czyszczenie_cech.wczytywanie import oczysc_plik
 
+if __name__ == "__main__":
+    wejscie = Path(config.SCIEZKA_SUROWE)
+    oczyszczone = Path(config.SCIEZKA_OCZYSZCZONE)
+    po_uldk = Path(config.SCIEZKA_PO_ULDK)
+    data_do = date.fromisoformat(config.DATA_DO)
 
-def uruchom():
-    parser = argparse.ArgumentParser(description='Czyszczenie RCN partiami, bez pobierania danych i liczenia OSM.')
-    parser.add_argument('--wejscie', default=config.SCIEZKA_SUROWE)
-    parser.add_argument('--wyjscie', default=config.SCIEZKA_OCZYSZCZONE)
-    parser.add_argument('--data-do', type=date.fromisoformat, default=date.fromisoformat(config.DATA_DO))
-    parser.add_argument('--partia', type=int, default=config.WIELKOSC_PARTII)
-    parser.add_argument('--wojewodztwo', choices=sorted(WOJEWODZTWA), default=None)
-    args = parser.parse_args()
-    if args.data_do > date.today():
-        parser.error('--data-do nie moze byc z przyszlosci')
-    if args.data_do.year < config.ROK_OD:
-        parser.error('--data-do jest przed poczatkiem zakresu badania')
-    oczysc_plik(args.wejscie, args.wyjscie, args.data_do, args.partia, args.wojewodztwo)
+    print("1. Czyszczenie transakcji RCN")
 
+    if oczyszczone.exists():
+        print(f"Korzystam z zapisanego wyniku: {oczyszczone}")
+    else:
+        oczysc_plik(
+            wejscie=wejscie,
+            wyjscie=oczyszczone,
+            data_do=data_do,
+            wielkosc_partii=config.WIELKOSC_PARTII,
+            wojewodztwo=config.WOJEWODZTWO,
+            limit_uldk=config.LIMIT_ULDK,
+        )
 
-if __name__ == '__main__':
-    uruchom()
+    print()
+    print("2. Pobieranie brakujacych granic ULDK")
+
+    # Teraz pobieranie juz dziala osobno. Nie startujemy drugiej kopii.
+    if not config.UZUPELNIJ_ULDK:
+        print("Etap wylaczony w config.py. Podglad pobierania: python postep.py")
+    elif po_uldk.exists():
+        print(f"Wynik po ULDK juz istnieje: {po_uldk}")
+    else:
+        opis = pobierz_brakujace_granice()
+
+        print()
+        print("3. Przeliczenie powierzchni i cen po ULDK")
+
+        przelicz_po_uldk(opis)
+
+    print()
+    print("Koniec przygotowania danych. OSM i modele to kolejne etapy.")

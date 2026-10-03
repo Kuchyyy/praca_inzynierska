@@ -1,3 +1,9 @@
+> Korekta z 03.10.2026: nieznane udziały są odrzucane, znane udziały częściowe
+> służą do proporcjonalnego przeliczenia ceny za m². Braki geometrii zostają. `do_modelu` oddziela rekordy o kompletnych danych podstawowych.
+> Czyszczenie korzysta ze starych środków ULDK i nowego cache pełnych granic.
+> Domyślnie działa bez sieci; `LIMIT_ULDK` w `config.py` pozwala uzupełniać granice etapami.
+> Wcześniejsze liczby i opisy poniżej dokumentują poprzednie warianty.
+
 > Bieżący etap — czyszczenie krajowego RCN
 >
 > `main.py` wykonuje teraz tylko czyszczenie partiami. Zapisuje GeoParquet

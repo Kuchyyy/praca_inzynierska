@@ -6,18 +6,14 @@ DATA_DO = "2026-10-02"
 WIELKOSC_PARTII = 25000
 ZAPAS_DYSKU_GIB = 10
 SCIEZKA_POSREDNIE = "db/dane/posrednie"
+SCIEZKA_ULDK_GRANICE = "db/dane/posrednie/uldk_granice.sqlite"
+WOJEWODZTWO = None
+LIMIT_ULDK = 0
+UZUPELNIJ_ULDK = False
+SCIEZKA_PO_ULDK = "db/dane/gotowe/polska_po_uldk"
+
 SCIEZKA_ODRZUCONE = "db/dane/posrednie/odrzucone"
 SCIEZKA_GOTOWE = "db/dane/gotowe"
-
-
-# Kod TERYT województwa -> plik OSM i zapisane warstwy.
-# Cache starego etapu cech. Czyszczenie krajowe nie czyta OSM.
-OSM_WOJEWODZTWA = {
-    "02": {
-        "pbf": "db/dane/surowe/osm/dolnoslaskie-260913.osm.pbf",
-        "warstwy": "warstwy_osm_02.parquet",
-    },
-}
 
 
 ROK_OD = 2015
