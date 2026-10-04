@@ -7,3 +7,5 @@ geopandas
 pyrosm
 scikit-learn
 pyproj
+pyogrio
+osmium>=4.3,<5

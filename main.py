@@ -2,6 +2,8 @@ from datetime import date
 from pathlib import Path
 
 import config
+from etl.cechy_osm.polska import policz_osm
+from etl.egib.paczki import uzupelnij_egib
 from etl.uldk.uzupelnij import pobierz_brakujace_granice, przelicz_po_uldk
 from etl.wczytanie_i_czyszczenie_cech.wczytywanie import oczysc_plik
 
@@ -26,10 +28,12 @@ if __name__ == "__main__":
         )
 
     print()
-    print("2. Pobieranie brakujacych granic ULDK")
+    print("2. Uzupelnienie granic i przeliczenie powierzchni")
 
     # Teraz pobieranie juz dziala osobno. Nie startujemy drugiej kopii.
-    if not config.UZUPELNIJ_ULDK:
+    if config.UZUPELNIJ_EGIB:
+        uzupelnij_egib()
+    elif not config.UZUPELNIJ_ULDK:
         print("Etap wylaczony w config.py. Podglad pobierania: python postep.py")
     elif po_uldk.exists():
         print(f"Wynik po ULDK juz istnieje: {po_uldk}")
@@ -42,4 +46,8 @@ if __name__ == "__main__":
         przelicz_po_uldk(opis)
 
     print()
-    print("Koniec przygotowania danych. OSM i modele to kolejne etapy.")
+    if config.LICZ_OSM:
+        print("4. Cechy otoczenia z OSM")
+        policz_osm()
+
+    print("Koniec wybranych etapow przygotowania danych.")

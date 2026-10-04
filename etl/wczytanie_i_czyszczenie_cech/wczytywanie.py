@@ -100,6 +100,7 @@ def oczysc_plik(
                 "zrodlo_geometrii",
                 "zrodlo_srodka",
                 "uldk_pobrano_utc",
+                "egib_pobrano_utc",
                 "status_jakosci",
                 "powody_wstrzymania",
             ]

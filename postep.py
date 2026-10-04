@@ -9,10 +9,18 @@ import config
 
 if __name__ == "__main__":
     plik = Path(config.SCIEZKA_POSREDNIE) / "uldk_postep.json"
+    egib = Path(config.SCIEZKA_POSREDNIE) / "egib_postep.json"
+    if egib.exists():
+        plik = egib
+
+    osm = Path(config.SCIEZKA_POSREDNIE) / "osm_postep.json"
+    if osm.exists():
+        plik = osm
+
     poczatek = None
     pierwsza_liczba = None
 
-    print("Postep ULDK — odswiezanie co 10 sekund. Ctrl+C zamyka podglad.\n")
+    print("Postep danych — odswiezanie co 10 sekund. Ctrl+C zamyka podglad.\n")
 
     try:
         while True:
@@ -20,6 +28,18 @@ if __name__ == "__main__":
                 stan = json.loads(plik.read_text())
             except (FileNotFoundError, json.JSONDecodeError):
                 print("Czekam na zapis postepu...", flush=True)
+                time.sleep(10)
+                continue
+
+            if plik == osm:
+                if stan["status"] == "odczyt_osm":
+                    print(f"OSM: {stan['obiekty']:,} obiektow odczytanych | czas: {stan['czas_sekundy']} s | trwa budowanie warstw, ETA jeszcze nieznane", flush=True)
+                elif stan["status"] == "cechy_osm":
+                    print(f"OSM: {stan['wykonane']}/{stan['wszystkie']} warstw | licze: {stan['warstwa']} | czas: {stan['czas_sekundy']} s", flush=True)
+                else:
+                    print(stan, flush=True)
+                    if stan["status"] in {"zakonczone", "przerwane"}:
+                        break
                 time.sleep(10)
                 continue
 
@@ -44,10 +64,17 @@ if __name__ == "__main__":
                 minuty = int(sekundy % 3600 // 60)
                 eta = f"ok. {godziny} godz. {minuty} min (samo pobieranie)"
 
+            if "eta_sekundy" in stan:
+                sekundy = stan["eta_sekundy"]
+                eta = f"ok. {int(sekundy // 3600)} godz. {int(sekundy % 3600 // 60)} min (paczki)"
+
+            if "powiaty" in stan:
+                print(f"Powiaty: {stan['powiaty_gotowe']}/{stan['powiaty']} | obecny: {stan.get('powiat', '-')} | bledy: {len(stan.get('bledy', {}))}")
+
             opoznienie = (datetime.now(timezone.utc) - aktualizacja).total_seconds()
 
-            if opoznienie > 120:
-                eta = "brak nowego postepu od ponad 2 min — sprawdz log"
+            if opoznienie > (600 if "powiaty" in stan else 120):
+                eta = "dlugo bez aktualizacji — sprawdz log"
 
             print(
                 f"{datetime.now():%H:%M:%S} | {wykonane:,}/{wszystkie:,} ({procent:.2f}%)"
@@ -56,7 +83,7 @@ if __name__ == "__main__":
                 flush=True,
             )
 
-            if stan["status"] in {"zakonczone", "przerwane"}:
+            if stan["status"] in {"zakonczone", "zakonczone_z_bledami", "przerwane"}:
                 if stan.get("blad"):
                     print(stan["blad"])
                 break
