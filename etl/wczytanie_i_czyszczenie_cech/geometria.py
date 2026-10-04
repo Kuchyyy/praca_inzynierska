@@ -54,6 +54,8 @@ def dodaj_geometrie(df, srodki=None, baza_uldk=None, pobieranie=None):
     )
     df["zrodlo_geometrii"] = ["rcn" if k is not None else "brak" for k in ksztalty]
     df["uldk_pobrano_utc"] = pd.Series(None, index=df.index, dtype="str")
+    df["egib_pobrano_utc"] = pd.Series(None, index=df.index, dtype="str")
+
     for indeks in df.index[brak]:
         zapis = granice.get(df.at[indeks, "dzi_id_dzialki"])
         if zapis is None:
@@ -61,8 +63,9 @@ def dodaj_geometrie(df, srodki=None, baza_uldk=None, pobieranie=None):
         ksztalt = wczytaj_ksztalt(zapis[0])
         if ksztalt is not None:
             ksztalty.at[indeks] = ksztalt
-            df.at[indeks, "zrodlo_geometrii"] = "uldk"
-            df.at[indeks, "uldk_pobrano_utc"] = zapis[1]
+            zrodlo = zapis[2]
+            df.at[indeks, "zrodlo_geometrii"] = zrodlo
+            df.at[indeks, zrodlo + "_pobrano_utc"] = zapis[1]
     df["geometry"] = [k.wkb if k is not None else None for k in ksztalty]
     df["status_geometrii"] = [
         "poprawna" if k is not None else "brak_lub_bledna" for k in ksztalty

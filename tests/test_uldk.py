@@ -4,12 +4,13 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from http.client import IncompleteRead
 
 from shapely import wkb
 from shapely.geometry import box
 
-from etl.uldk.granice import granica_z_odpowiedzi, otworz_cache, znajdz_granice
+from etl.uldk.granice import granica_z_odpowiedzi, otworz_cache, znajdz_granice, pobierz_granice
 
 
 class ULDKTest(unittest.TestCase):
@@ -80,6 +81,38 @@ class ULDKTest(unittest.TestCase):
         ) as pobierz:
             self.assertEqual(set(znajdz_granice(["a"], self.baza, stan)), {"a"})
             pobierz.assert_called_once()
+
+    def test_urwana_odpowiedz_nie_przerywa_pobierania(self):
+        odpowiedz = MagicMock()
+        odpowiedz.headers = {}
+        odpowiedz.read.side_effect = IncompleteRead(b"urwane", 100)
+
+        with patch("etl.uldk.granice.urlopen") as otworz:
+            otworz.return_value.__enter__.return_value = odpowiedz
+            self.assertEqual(pobierz_granice("a"), (None, "blad_sieci"))
+
+    def test_ogromna_odpowiedz_nie_jest_wczytywana(self):
+        odpowiedz = MagicMock()
+        odpowiedz.headers = {"Content-Length": "4294967296"}
+
+        with patch("etl.uldk.granice.urlopen") as otworz:
+            otworz.return_value.__enter__.return_value = odpowiedz
+            self.assertEqual(pobierz_granice("a"), (None, "za_duza_odpowiedz"))
+            odpowiedz.read.assert_not_called()
+
+    def test_limit_odczytu_bez_naglowka_i_niepelna_tresc(self):
+        odpowiedz = MagicMock()
+        odpowiedz.headers = {}
+        odpowiedz.read.return_value = b"x" * (5 * 1024 * 1024 + 1)
+
+        with patch("etl.uldk.granice.urlopen") as otworz:
+            otworz.return_value.__enter__.return_value = odpowiedz
+            self.assertEqual(pobierz_granice("a"), (None, "za_duza_odpowiedz"))
+            odpowiedz.read.assert_called_once_with(5 * 1024 * 1024 + 1)
+
+            odpowiedz.headers = {"Content-Length": "100"}
+            odpowiedz.read.return_value = b"0"
+            self.assertEqual(pobierz_granice("a"), (None, "blad_sieci"))
 
     def test_zero_limitu_nie_odpytuje_sieci(self):
         with patch("etl.uldk.granice.pobierz_granice") as pobierz:

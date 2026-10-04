@@ -1,3 +1,9 @@
+> Aktualizacja OSM 04.10.2026: krajowe obliczenia są w etl/cechy_osm/polska.py.
+> Źródło to poland-260930.osm.pbf, odczyt strumieniowy pyosmium. Liczymy 27 cech.
+> Utwardzenie wymaga surface, nie samej klasy drogi. Dawne liczby dla Dolnego
+> Śląska i deklarowane wagi poniżej nie są wynikami obecnego krajowego procesu.
+> Ekstrakt Geofabrik nie gwarantuje kompletności obiektów za granicą Polski.
+
 > Korekta z 03.10.2026: nieznane udziały są odrzucane, znane udziały częściowe
 > służą do proporcjonalnego przeliczenia ceny za m². Braki geometrii zostają. `do_modelu` oddziela rekordy o kompletnych danych podstawowych.
 > Czyszczenie korzysta ze starych środków ULDK i nowego cache pełnych granic.

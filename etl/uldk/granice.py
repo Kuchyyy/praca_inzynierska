@@ -3,6 +3,7 @@ import shutil
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from http.client import HTTPException
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -21,6 +22,14 @@ def otworz_cache(sciezka):
     baza = sqlite3.connect(sciezka)
     baza.execute("""CREATE TABLE IF NOT EXISTS granice (
         id TEXT PRIMARY KEY, geometry BLOB, pobrano_utc TEXT, status TEXT
+    )""")
+    baza.execute("""CREATE TABLE IF NOT EXISTS granice_egib (
+        id TEXT PRIMARY KEY, geometry BLOB, pobrano_utc TEXT,
+        powiat TEXT, czas_zrodla TEXT, pole_m2 REAL
+    )""")
+    baza.execute("""CREATE TABLE IF NOT EXISTS paczki_egib (
+        powiat TEXT PRIMARY KEY, url TEXT, sha256 TEXT, bajty INTEGER,
+        pobrano_utc TEXT, znalezione INTEGER, szukane INTEGER, stan_wejscia TEXT
     )""")
     baza.commit()
     return baza
@@ -66,9 +75,21 @@ def pobierz_granice(identyfikator):
     )
     try:
         with urlopen(ADRES + "?" + zapytanie, timeout=30) as odpowiedz:
-            tekst = odpowiedz.read().decode("utf-8")
+            # Jedna dzialka nie powinna sciagac setek megabajtow.
+            limit = 5 * 1024 * 1024
+            rozmiar = odpowiedz.headers.get("Content-Length")
+            if rozmiar and rozmiar.isdigit() and int(rozmiar) > limit:
+                return None, "za_duza_odpowiedz"
+
+            dane = odpowiedz.read(limit + 1)
+            if len(dane) > limit:
+                return None, "za_duza_odpowiedz"
+            if rozmiar and rozmiar.isdigit() and len(dane) != int(rozmiar):
+                return None, "blad_sieci"
+
+            tekst = dane.decode("utf-8")
         return granica_z_odpowiedzi(tekst, identyfikator)
-    except (URLError, TimeoutError, OSError, UnicodeError):
+    except (HTTPException, URLError, TimeoutError, OSError, UnicodeError):
         return None, "blad_sieci"
 
 
@@ -77,6 +98,7 @@ def znajdz_granice(identyfikatory, baza, pobieranie):
         return {}
     identyfikatory = list(dict.fromkeys(identyfikatory))
     zapis = {}
+    zrodla = {}
     for start in range(0, len(identyfikatory), 900):
         czesc = identyfikatory[start : start + 900]
         znaki = ",".join("?" for _ in czesc)
@@ -85,6 +107,13 @@ def znajdz_granice(identyfikatory, baza, pobieranie):
             czesc,
         ):
             zapis[identyfikator] = (geometria, kiedy, status)
+        for identyfikator, geometria, kiedy in baza.execute(
+            f"SELECT id, geometry, pobrano_utc FROM granice_egib WHERE id IN ({znaki})", czesc
+        ):
+            if identyfikator not in zapis or zapis[identyfikator][2] != "ok":
+                zapis[identyfikator] = (geometria, kiedy, "ok")
+                zrodla[identyfikator] = "egib"
+
     for identyfikator in identyfikatory:
         if pobieranie is None or pobieranie["pozostalo"] <= 0:
             break
@@ -118,9 +147,10 @@ def znajdz_granice(identyfikatory, baza, pobieranie):
             f"  ULDK {pobieranie['zapytania']}: {identyfikator}, {status}", flush=True
         )
         # Po bledzie tez dajemy usludze chwile oddechu.
-        time.sleep(0.5)
+        przerwa = config.PRZERWA_ULDK if status in {"ok", "brak_wyniku"} else 2
+        time.sleep(przerwa)
     return {
-        identyfikator: (g, kiedy)
+        identyfikator: (g, kiedy, zrodla.get(identyfikator, "uldk"))
         for identyfikator, (g, kiedy, status) in zapis.items()
         if status == "ok"
     }

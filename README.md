@@ -195,3 +195,52 @@ Pokazuje liczbę sprawdzonych działek, pozostałe, znalezione granice i czas
 pozostały do końca pobierania. Szacunek powstaje z tempa od otwarcia podglądu,
 po pierwszych nowych wynikach. Zakończenie podglądu przez Ctrl+C nie zatrzymuje
 pobierania. Po pobraniu następuje osobne przeliczenie RCN (dotąd około 6 minut).
+
+## Paczki powiatowe EGiB
+
+Dla masowego uzupełniania granic używamy teraz `python -m etl.egib.paczki`.
+Skrypt korzysta z cache ULDK, pobiera jedną paczkę powiatową ZIP/GPKG naraz,
+czyta partiami tylko warstwę działek i zapisuje potrzebne geometrie oraz pola.
+Po zatwierdzeniu cache usuwa nowe pliki robocze powiatu. Zachowuje 10 GiB zapasu.
+Adresy pochodzą z [oficjalnej wtyczki GUGiK](https://github.com/GlownyUrzadGeodezjiIKartografii/pobierz_dane_GUGiK/blob/main/pobierz_dane_GUGiK_dockwidget.py).
+
+Cache `granice_egib` i wykaz `paczki_egib` są w lokalnym SQLite obok tabeli ULDK.
+Wykaz zawiera URL, datę pobrania, SHA256, rozmiar i liczebności. Baza EGiB ma
+osobne oznaczenie źródła w wyniku; aktualna geometria nie potwierdza historycznych granic.
+Nieznalezione identyfikatory pozostają brakami. Rozbieżności powierzchni nadal blokują modelowanie.
+
+Po pobraniu powstanie `db/dane/gotowe/polska_po_egib/`; stary wynik zostaje.
+`python postep.py` automatycznie pokazuje postęp EGiB, gdy istnieje jego plik postępu.
+Log: `db/dane/posrednie/egib_pobieranie.log`. Przerwane pobieranie wznawia ta sama komenda.
+Gotowe powiaty są pomijane; przerwany plik bez walidatora wersji jest pobierany od początku.
+Nie uruchamiaj drugiego pobierania równolegle. `UZUPELNIJ_EGIB` w config.py pozwala
+uruchomić ten etap również z main.py; teraz jest False, bo proces działa osobno.
+
+## Krajowe cechy OSM
+
+`python -m etl.cechy_osm.polska` najpierw buduje warstwy z krajowego PBF,
+a potem liczy 27 cech dla rekordów `do_modelu=true` z `polska_po_egib`.
+Wynik: `db/dane/gotowe/polska_cechy_osm/transakcje.parquet` i podsumowanie.
+`LICZ_OSM` w config.py włącza ten etap również w main.py; jest wyłączone,
+gdy obliczenia uruchomiono osobno. `python postep.py` pokazuje postęp.
+
+Warstwy czytane są strumieniowo przez pyosmium, z tymczasowym indeksem
+współrzędnych na dysku. Cache warstw to Parquet w `posrednie/osm_polska`.
+Podczas liczenia w pamięci jest jedna warstwa i tabela cech. Nie dzielimy
+sąsiadów według województw. Obiekty poza ekstraktem Polski mogą być pominięte.
+
+Odległości do dróg, budynków, wody i usług liczone są do geometrii,
+od środka działki, w metrach EPSG:2180. Liczby budynków i POI opierają się
+na centroidach obiektów. Udziały lasu i zabudowy liczą sumę geometryczną
+przecięć z buforem 500 m, bez podwajania nakładających się powierzchni.
+Drogi utwardzone wymagają jawnego tagu surface; klasa highway nie wystarcza.
+Populacja miast pochodzi tylko z OSM; brak liczby nie jest zerem.
+Miejscowości reprezentują punkty place; obszary i punkty szkół/sklepów
+są uwzględniane. POI oznacza liczbę zapisanych obiektów OSM, nie zweryfikowaną
+liczbę placówek (punkt i obszar mogą opisywać to samo miejsce).
+
+Puste warstwy dają braki, a nie fałszywe zera. OSM opisuje stan z daty
+pobranego ekstraktu, nie historyczne otoczenie każdej transakcji. Odległość
+do drogi nie potwierdza prawnego dostępu. Wagi z dawnych notatek nie są
+zweryfikowanymi wynikami modeli. SQLite nadal służy jako cache granic;
+docelowy PostgreSQL/PostGIS nie został jeszcze wdrożony.

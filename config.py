@@ -9,6 +9,7 @@ SCIEZKA_POSREDNIE = "db/dane/posrednie"
 SCIEZKA_ULDK_GRANICE = "db/dane/posrednie/uldk_granice.sqlite"
 WOJEWODZTWO = None
 LIMIT_ULDK = 0
+PRZERWA_ULDK = 0.1
 UZUPELNIJ_ULDK = False
 SCIEZKA_PO_ULDK = "db/dane/gotowe/polska_po_uldk"
 
@@ -56,3 +57,11 @@ KOLUMNY_POTRZEBNE = [
     "dzi_adres",
     "geometry",
 ]
+
+UZUPELNIJ_EGIB = False
+SCIEZKA_PO_EGIB = "db/dane/gotowe/polska_po_egib"
+
+SCIEZKA_OSM = "db/dane/surowe/osm/poland-260930.osm.pbf"
+SCIEZKA_WARSTWY_OSM = "db/dane/posrednie/osm_polska"
+SCIEZKA_CECHY_OSM = "db/dane/gotowe/polska_cechy_osm"
+LICZ_OSM = False
