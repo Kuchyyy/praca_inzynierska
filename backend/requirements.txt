@@ -1,0 +1,15 @@
+pandas
+pyarrow
+numpy
+shapely
+scipy
+geopandas
+pyrosm
+scikit-learn
+pyproj
+pyogrio
+osmium>=4.3,<5
+psycopg[binary]>=3.2,<4
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+shap>=0.53,<1

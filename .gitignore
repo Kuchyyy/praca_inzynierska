@@ -3,8 +3,11 @@
 __pycache__/
 *.pyc
 dane/
-db/postgres/
-db/backups/
+!frontend/src/dane/
+backend/db/postgres/
+backend/db/backups/
+node_modules/
+frontend/dist/
 praca/prywatne/
 *.part
 *.part.json

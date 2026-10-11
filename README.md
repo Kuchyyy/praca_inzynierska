@@ -6,13 +6,24 @@ Odrzuca nieznane udziały, zachowuje braki geometrii i korzysta z zapisanego
 cache ULDK i opcjonalnie pobiera pełne granice. Nie liczy jeszcze OSM,
 sąsiedztwa cenowego ani modeli.
 
+## Struktura repozytorium
+
+- `backend/` — przygotowanie danych w Pythonie: ETL, model, baza PostGIS i testy.
+  Wszystkie komendy Pythona z tego README uruchamiamy z katalogu `backend/`.
+- `frontend/` — panel wyceny (React, Tailwind, shadcn), połączony z serwerem wyceny
+  `backend/api.py`. Opis: [frontend/README.md](frontend/README.md).
+- `praca/` — dokumenty do pracy inżynierskiej.
+- W katalogu głównym zostają `docker-compose.yml` i `.env`, wspólne dla całego projektu.
+  Komendy `docker compose` uruchamiamy z katalogu głównego.
+
 ## Uruchomienie
 
-Z głównego katalogu repo:
+Potrzebny Python 3.12 (wymaga go biblioteka `shap`).
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+cd backend
+python3.12 -m venv ../.venv
+source ../.venv/bin/activate
 pip install -r requirements.txt
 python main.py
 ```
@@ -47,7 +58,7 @@ kopia pobierania. OSM i trening nie są jeszcze podłączone do krajowego przep�
 Docker używa tego samego katalogu danych:
 
 ```bash
-docker compose up --build
+docker compose --profile etl run --build --rm etl
 ```
 
 ## Zasady czyszczenia
@@ -154,12 +165,12 @@ eksperymentu. Wymaga dostosowania przed użyciem na całej Polsce.
 ULDK jest już podłączone do nowego czyszczenia.
 `model/pierwszy.py`, `zobacz.py` i `do_excela.py` nadal czytają wcześniejszy
 `db/dane/gotowe/dane_z_cechami.parquet`, którego nowe czyszczenie nie nadpisuje.
-Nie są jeszcze podłączone do nowego zbioru.
+Modele dla całej Polski trenuje `model/trenuj.py` (sekcja „Wycena działki w panelu”).
 
 Zostały do wykonania: cechy otoczenia, poprawne sąsiedztwo cenowe, PostGIS
 oraz porównanie modeli. Zakres obejmuje RCN i OSM; bez GUS, powodzi, NMT,
 dodatkowych danych planistycznych i BDOT10k. Opis cech: [praca/CECHY.md](praca/CECHY.md).
-Pobieranie źródeł: [db/README.md](db/README.md). Prywatne notatki są w
+Pobieranie źródeł: [backend/db/README.md](backend/db/README.md). Prywatne notatki są w
 `praca/prywatne/`, poza Git i obrazem Dockera.
 
 ## Testy
@@ -188,7 +199,7 @@ Komputer musi działać z dostępem do internetu; uśpienie wstrzymuje pracę.
 Podgląd trwającego pobierania w drugim terminalu:
 
 ```bash
-.venv312/bin/python postep.py
+../.venv312/bin/python postep.py
 ```
 
 Pokazuje liczbę sprawdzonych działek, pozostałe, znalezione granice i czas
@@ -244,3 +255,158 @@ pobranego ekstraktu, nie historyczne otoczenie każdej transakcji. Odległość
 do drogi nie potwierdza prawnego dostępu. Wagi z dawnych notatek nie są
 zweryfikowanymi wynikami modeli. SQLite nadal służy jako cache granic;
 docelowy PostgreSQL/PostGIS nie został jeszcze wdrożony.
+
+## Pozostałe cechy dla Polski
+
+`python -m etl.pozostale_cechy` dodaje cechy podstawowe, przeznaczenie z RCN
+oraz osiem cech sąsiedztwa cenowego do gotowej tabeli OSM. Wynik trafia do
+`db/dane/gotowe/polska_pelne_cechy/`, bez nadpisywania poprzednich danych.
+W main.py etap włącza `LICZ_POZOSTALE_CECHY`; domyślnie False, aby nie uruchomić
+drugiej kopii podczas osobnego przeliczenia. Podgląd: `python postep.py`.
+
+Podział: trening przed 2025-01-01, test od tej daty. Sąsiedztwo korzysta
+wyłącznie z wcześniejszych transakcji treningowych, bez tej samej działki.
+Lista wejść jest w `cechy_modelu.json`. Pełne definicje i ograniczenia:
+[praca/PELNE_CECHY.md](praca/PELNE_CECHY.md). Model historyczny nie jest jeszcze
+podłączony do tego pliku; nie wolno brać wszystkich kolumn liczbowych jako cech.
+
+Przeliczenie pozostalych cech zakonczone: 732 702 rekordy, 76 kandydatow na wejscia
+modelu, 119 kolumn lacznie. Trening 607 757, test 124 945, wszystkie 16 wojewodztw.
+Wynik zajmuje 335 115 446 bajtow. Sprawdzono zachowanie wszystkich kolumn OSM/RCN
+oraz niezaleznie 35 probek sasiedztwa. Szczegoly w lokalnym weryfikacja.json.
+
+## Końcowy audyt i wejścia modelu
+
+`python -m etl.audyt_danych` sprawdza gotowy zbiór krajowy, zapisuje raporty
+braków, cen, udziałów i pokrycia oraz kontrakt wejść: 44 cechy dla mapy,
+74 dla formularza. Wyniki są w `db/dane/gotowe/audyt_modelu/`.
+`python -m etl.walidacja_modelu` przygotowuje oddzielne sąsiedztwo dla
+walidacji w 2024 roku, bez wykorzystywania jej cen i testu od 2025 roku.
+Oba etapy są podłączone do main.py przez `AUDYTUJ_DANE` w config.py.
+Kod wspólnego przetwarzania wejść jest w `model/przygotowanie.py`.
+Zasady, wyniki audytu i wymagania przyszłej aplikacji:
+[praca/GOTOWOSC_DANYCH.md](praca/GOTOWOSC_DANYCH.md).
+
+## Lokalna baza PostgreSQL/PostGIS
+
+```bash
+docker compose up -d --build --wait db
+```
+
+Baza `dzialki` jest dostępna pod `127.0.0.1:5432`. Użytkownik aplikacji:
+`dzialki_app`. Hasła są opcjonalne: bez `.env` nowa baza działa bez haseł,
+tylko lokalnie. Wzór ustawień: `.env.example`. Dane bazy są
+w trwałym wolumenie. ETL uruchamiany jest osobno przez profil `etl`.
+Instrukcja połączenia, kopii i zatrzymywania: [backend/db/POSTGIS.md](backend/db/POSTGIS.md).
+Import do schematu `dane` (`python -m db.import_postgis`) zawiera 732 702 transakcje
+z pełnymi cechami i 23 warstwy OSM z indeksami GiST. Raport:
+`db/dane/posrednie/import_postgis.json`.
+
+## Wycena działki w panelu
+
+Panel (`frontend/`) wycenia działkę przez serwer `backend/api.py`. Serwer liczy dla
+wskazanej granicy te same 74 cechy co ETL (wariant „formularz” z
+`audyt_modelu/cechy_modelu.json`) i podaje je wytrenowanym modelom:
+
+1. dane z formularza: TERYT z obrębu, czas, przeznaczenie, prawo, sprzedający,
+2. granica w EPSG:2180: środek, pole, wskaźnik zwartości,
+3. 27 cech OSM z tabel `dane.osm_*` w PostGIS (odległości przez indeks GiST,
+   liczby obiektów po centroidach, udział lasu i zabudowy w kole 500 m),
+4. 8 cech sąsiedztwa cenowego z `dane.transakcje`: tylko sprzedaże ściśle sprzed daty
+   wyceny, bez wcześniejszych sprzedaży tej samej działki,
+5. predykcje pięciu modeli,
+6. przedział 80%, wkład cech, historia cen gminy i percentyle cech w gminie.
+
+Po każdym kroku serwer wysyła linię JSON, więc panel pokazuje prawdziwy postęp.
+Cała wycena trwa ok. 0,2–0,5 s.
+
+```bash
+docker compose up -d --wait db      # z katalogu głównego
+cd backend
+python -m model.trenuj              # raz: zapis do db/dane/gotowe/model/
+python api.py                       # http://127.0.0.1:8000
+```
+
+Trening można też włączyć w `main.py` przez `TRENUJ_MODELE = True`. Istniejący
+katalog modeli jest używany ponownie; żeby trenować od nowa, usuń
+`db/dane/gotowe/model/`.
+
+Zasady treningu (`model/trenuj.py`):
+
+- trening to transakcje przed `TEST_OD`, test to transakcje od tej daty,
+- w `cena_m2` zostały pomyłki rzędu milionów zł/m² (maksimum 64 mld zł/m²).
+  Progi `CENA_M2_KWANTYL_DOL/GORA` (0,1% i 99,8%, czyli 0,10–7 271 zł/m²) liczone są
+  tylko na treningu i tak samo stosowane do testu (odpada 429 z 124 945 transakcji),
+- powiat i gmina są kodowane średnią celu z treningu (`TargetEncoder`, krzyżowo),
+  pozostałe kategorie jako 0/1, liczby z medianą i wskaźnikiem braku,
+- regresje i drzewo uczą się na logarytmie ceny, las losowy na cenie wprost,
+  a Gradient Boosting przewiduje medianę ceny (`absolute_error`). Wybór zapadł na
+  walidacji z 2024 roku, bez zaglądania do testu.
+
+Wyniki na teście (transakcje od 01.01.2025, zł/m²):
+
+| Model | MAE | RMSE | R² | Mediana błędu względnego |
+|---|---:|---:|---:|---:|
+| Gradient Boosting | 64,95 | 241,2 | 0,391 | 35,8% |
+| Random Forest | 69,31 | 233,2 | 0,431 | 41,1% |
+| Decision Tree | 74,09 | 262,3 | 0,280 | 41,6% |
+| Bayesian Ridge | 79,43 | 287,2 | 0,137 | 47,4% |
+| Linear Regression | 79,42 | 287,2 | 0,137 | 47,4% |
+
+Wynik główny pochodzi z modelu o najniższym MAE. Wkład cech panel pokazuje dla każdego
+modelu osobno: regresje rozkładają wycenę liniowo względem średniej działki z treningu,
+a drzewo, las i boosting przez wartości SHAP. Start plus suma wkładów daje dokładnie
+wycenę danego modelu. Ważność globalna to ważność permutacyjna na próbce testu
+(wzrost MAE po przetasowaniu cechy), liczona przy treningu dla każdego modelu.
+
+Przycisk „Cechy” w nagłówku panelu otwiera opis wszystkich 74 cech: jak są liczone,
+gdzie powstają w kodzie, ich statystyki z treningu, ważność w każdym modelu, a po
+wycenie także wartość i wkład dla działki. Dane do tego widoku zwraca `GET /api/model`.
+
+## Testy i eksperymenty w terminalu
+
+Komendy z katalogu `backend/`, ustawienia w `config.py`.
+
+| Komenda | Co robi | Czas | Wynik |
+|---|---|---|---|
+| `python -m unittest discover -s tests` | testy jednostkowe na małych sztucznych danych | kilka s | w terminalu |
+| `python -m model.sprawdz_cechy` | liczy cechy kodem panelu dla `SPRAWDZ_CECHY_LICZBA` transakcji treningowych i porównuje z wartościami z ETL | ok. 1 min | `db/dane/gotowe/sprawdzenie_cech.json` |
+| `python -m model.backtest` | wycenia `BACKTEST_LICZBA` sprzedaży z testu pełną ścieżką panelu i porównuje z ceną z aktu | ok. 10 min | `db/dane/gotowe/backtest/` |
+| `python -m model.eksperyment` | uczy modele na wybranych cechach i ocenia je na walidacji 2024 | ok. 1 min na eksperyment | `db/dane/gotowe/eksperymenty/` |
+| `python -m model.wycen_przyklady` | wycenia działki z `przyklady.json` głównymi modelami i każdym eksperymentem | kilka s | `db/dane/gotowe/eksperymenty/wyceny_przykladow.csv` |
+
+Test zgodności cech z 09.10.2026: wszystkie 74 cechy zgodne dla 1 000 transakcji,
+największa różnica odległości poniżej 1 mm.
+
+Eksperyment ustawiamy w `config.py`:
+
+- `EKSPERYMENT_SERIA = None` i `EKSPERYMENT_NAZWA`, `EKSPERYMENT_POMIN_GRUPY`,
+  `EKSPERYMENT_POMIN_CECHY` albo `EKSPERYMENT_TYLKO_CECHY` — jeden własny zestaw cech,
+- `EKSPERYMENT_SERIA = "grupy"` — wszystkie cechy, a potem po kolei bez każdej z grup:
+  sasiedztwo, transakcja, lokalizacja, polozenie, czas, osm, przeznaczenie,
+- `EKSPERYMENT_SERIA = "liczba_cech"` — tylko N najważniejszych cech (ranking z ważności
+  permutacyjnej na walidacji), dla każdego N z `EKSPERYMENT_LICZBY_CECH`,
+- `EKSPERYMENT_MODELE` — które modele uczyć; domyślnie sam Gradient Boosting.
+
+Eksperymenty uczą się na sprzedażach przed `WALIDACJA_OD`, z cechami sąsiedztwa
+przeliczonymi bez cen z walidacji, i są oceniane na sprzedażach z 2024 roku. Test
+zostaje nietknięty. Istniejący katalog eksperymentu jest używany ponownie; żeby
+przeliczyć, usuń go. Każdy wynik dopisuje się do `eksperymenty/porownanie.csv`.
+
+Seria „grupy” z 09.10.2026 (Gradient Boosting, MAE na walidacji 2024, zł/m²):
+
+| Zestaw | Cech | MAE | Zmiana MAE |
+|---|---:|---:|---:|
+| wszystkie cechy | 74 | 65,36 | — |
+| bez lokalizacji administracyjnej | 71 | 65,16 | −0,21 |
+| bez transakcji i prawa | 71 | 65,49 | +0,13 |
+| bez przeznaczenia | 48 | 65,80 | +0,44 |
+| bez sąsiedztwa cenowego | 66 | 66,97 | +1,61 |
+| bez OSM | 47 | 68,09 | +2,73 |
+| bez czasu | 72 | 68,85 | +3,49 |
+| bez położenia i kształtu | 69 | 68,94 | +3,58 |
+
+Plik `przyklady.json` to lista działek: `identyfikator`, `rodzajGruntu`, `przeznaczenie`
+i opcjonalnie `prawo`, `sprzedajacy`, `powierzchnia`, `dataWyceny`, `opis`. Granica
+pochodzi z bazy, jeśli działka była sprzedana, a w przeciwnym razie z ULDK.
+Modele wyceniają ceny transakcyjne z RCN, a nie ceny ofertowe z ogłoszeń.
