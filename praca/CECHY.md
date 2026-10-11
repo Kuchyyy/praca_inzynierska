@@ -1,3 +1,7 @@
+> Pozostałe cechy zostały już obliczone dla Polski: 76 kandydatów na wejścia, 732 702 transakcje. Bieżące definicje: [PELNE_CECHY.md](PELNE_CECHY.md), bilans: [AUDYT_CECH.md](AUDYT_CECH.md).
+
+> Bieżący bilans kolumn i brakujących cech: [AUDYT_CECH.md](AUDYT_CECH.md). Historyczne liczby poniżej nie opisują gotowego krajowego wejścia modelu.
+
 > Aktualizacja OSM 04.10.2026: krajowe obliczenia są w etl/cechy_osm/polska.py.
 > Źródło to poland-260930.osm.pbf, odczyt strumieniowy pyosmium. Liczymy 27 cech.
 > Utwardzenie wymaga surface, nie samej klasy drogi. Dawne liczby dla Dolnego

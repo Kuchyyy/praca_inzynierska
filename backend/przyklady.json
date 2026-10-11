@@ -1,0 +1,25 @@
+[
+  {
+    "identyfikator": "126102_9.0001.100/1",
+    "opis": "Kraków, Balicka. Sprzedana 04.09.2024 za 1 111,58 zł/m².",
+    "rodzajGruntu": "gruntyRolne",
+    "przeznaczenie": "budownictwoMieszkanioweWielorodzinne",
+    "prawo": "wlasnoscNieruchomosciGruntowej",
+    "sprzedajacy": "osobaFizyczna",
+    "dataWyceny": "2026-10-09"
+  },
+  {
+    "identyfikator": "126102_9.0048.212",
+    "opis": "Kraków, Bronowice. Zieleń urządzona, sprzedana 27.11.2025 za 166 zł/m².",
+    "rodzajGruntu": "gruntyRolne",
+    "przeznaczenie": "terenZieleniUrzadzonej",
+    "dataWyceny": "2026-10-09"
+  },
+  {
+    "identyfikator": "126102_9.0047.106/2",
+    "opis": "Kraków, Bronowice. Duża działka (ok. 5 ha) bez sprzedaży w RCN, granica z ULDK.",
+    "rodzajGruntu": "gruntyRolne",
+    "przeznaczenie": "terenZabudowyUslugowej",
+    "dataWyceny": "2026-10-09"
+  }
+]

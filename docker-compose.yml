@@ -1,5 +1,32 @@
 services:
-  etl:
-    build: .
+  db:
+    build: ./backend/db/docker
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dzialki}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      # Hasła są opcjonalne. Bez nich nowa baza nie sprawdza haseł (trust),
+      # a port i tak przyjmuje połączenia tylko z tego komputera.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-trust}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - ./db/dane:/app/db/dane
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    shm_size: 256mb
+
+  etl:
+    profiles: ["etl"]
+    build: ./backend
+    volumes:
+      - ./backend/db/dane:/app/db/dane
+
+volumes:
+  postgres_data:
