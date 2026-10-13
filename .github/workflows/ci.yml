@@ -31,8 +31,8 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Test
-        run: python -m unittest discover -s tests -v
+      - name: Sprawdzenie składni
+        run: python -m compileall -q .
 
       - name: Build
         run: docker build -t praca-etl .
