@@ -16,7 +16,7 @@ CECHY = [
 ]
 
 
-def dodaj_sasiedztwo(dane, test_od, pokaz_postep=None):
+def dodaj_sasiedztwo(dane, test_od):
     dane = dane.reset_index(drop=True).copy()
     daty = dane["dok_data"].dt.normalize().to_numpy()
     ceny = dane["cena_m2"].to_numpy()
@@ -26,22 +26,17 @@ def dodaj_sasiedztwo(dane, test_od, pokaz_postep=None):
     trening = daty < np.datetime64(test_od)
     dane["zbior"] = np.where(trening, "trening", "test")
 
-    if not trening.any():
-        raise ValueError("Brak transakcji treningowych przed data podzialu")
-    if not np.isfinite(xy).all() or not np.isfinite(ceny).all() or (ceny <= 0).any():
-        raise ValueError("Sasiedztwo wymaga poprawnych wspolrzednych i cen")
-
     dol24 = (dane["dok_data"].dt.normalize() - pd.DateOffset(months=24)).to_numpy()
     dol12 = (dane["dok_data"].dt.normalize() - pd.DateOffset(months=12)).to_numpy()
     wyniki = {nazwa: np.full(len(dane), np.nan) for nazwa in CECHY}
     wyniki["liczba_transakcji_2km_24m"][:] = 0
 
-    # Jedna gmina lub obreb naraz; test nigdy nie jest zrodlem cen.
+    # Ceny sąsiadów bierzemy tylko z treningu, żeby test nie podpowiadał sam sobie.
     for kolumna, nazwa in [
         ("teryt_gmina", "mediana_cena_m2_gmina"),
         ("teryt_obreb", "mediana_cena_m2_obreb"),
     ]:
-        print(f"Sasiedztwo: {kolumna}", flush=True)
+        print(f"Sąsiedztwo: {kolumna}", flush=True)
         for _, indeksy in dane.groupby(kolumna).indices.items():
             zrodlo = indeksy[trening[indeksy]]
             zrodlo = zrodlo[np.argsort(daty[zrodlo], kind="stable")]
@@ -50,7 +45,6 @@ def dodaj_sasiedztwo(dane, test_od, pokaz_postep=None):
             for i in indeksy:
                 koniec = np.searchsorted(daty[zrodlo], daty[i], side="left")
                 wczesniejsze = zrodlo[:koniec]
-                # Wczesniejsza sprzedaz tej samej dzialki nie jest sasiadem.
                 wczesniejsze = wczesniejsze[dzialki[wczesniejsze] != dzialki[i]]
                 if not len(wczesniejsze):
                     continue
@@ -74,21 +68,9 @@ def dodaj_sasiedztwo(dane, test_od, pokaz_postep=None):
     start = time.monotonic()
 
     for i in range(len(dane)):
-        if i % 10000 == 0:
-            czas = time.monotonic() - start
-            eta = czas / i * (len(dane) - i) if i else None
-            print(
-                (
-                    f"Sasiedztwo przestrzenne: {i:,}/{len(dane):,}, pozostalo ok. {eta / 60:.1f} min"
-                    if eta
-                    else f"Sasiedztwo przestrzenne: {i:,}/{len(dane):,}"
-                ),
-                flush=True,
-            )
-            if pokaz_postep is not None:
-                pokaz_postep(i, len(dane), eta)
+        if i % 50000 == 0:
+            print(f"Sąsiedztwo przestrzenne: {i:,}/{len(dane):,}, {time.monotonic() - start:.0f} s", flush=True)
 
-        # Nie budujemy list sasiedztwa dla calej Polski jednoczesnie.
         indeksy = referencje[
             np.asarray(drzewo.query_ball_point(xy[i], r=5000), dtype=int)
         ]
@@ -98,7 +80,7 @@ def dodaj_sasiedztwo(dane, test_od, pokaz_postep=None):
         if len(indeksy):
             wyniki["odl_najblizsza_transakcja_m"][i] = odleglosci.min()
         elif daty[i] > pierwsza_data:
-            # Najblizsza wczesniejsza transakcja moze lezec dalej niz 5 km.
+            # Najbliższa wcześniejsza transakcja może leżeć dalej niż 5 km.
             ile = min(32, len(referencje))
             while ile:
                 dystanse, pozycje = drzewo.query(xy[i], k=ile)

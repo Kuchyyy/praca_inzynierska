@@ -21,6 +21,16 @@ export const RAMKA: Record<Kolor, string> = {
   wynik: "border-wynik",
 }
 
+export const TEKST: Record<Kolor, string> = {
+  akcja: "text-akcja",
+  sukces: "text-sukces",
+  spadek: "text-spadek",
+  ostrzezenie: "text-ostrzezenie",
+  rynek: "text-rynek",
+  model: "text-model",
+  wynik: "text-wynik",
+}
+
 // Kolor z CSS, np. dla warstw mapy, które nie znają klas Tailwind.
 export function kolorCss(nazwa: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(`--${nazwa}`).trim()

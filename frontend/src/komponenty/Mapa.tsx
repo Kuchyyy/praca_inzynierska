@@ -24,8 +24,9 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import { kolorCss } from "@/lib/kolory"
+import { KAFLE_GRANIC, KAFLE_NUMEROW, ZOOM_GRANIC, ZOOM_NUMEROW } from "@/lib/ewidencja"
 import { okrag, ramka } from "@/lib/geometria"
-import { liczba, zaM2 } from "@/lib/format"
+import { data, liczba, zaM2 } from "@/lib/format"
 import { RODZAJE_GRUNTU, nazwaOpcji } from "@/dane/slowniki"
 import type { Granica, Punkt, Transakcja } from "@/typy"
 
@@ -34,15 +35,6 @@ const START_MAPY: Punkt = [20.0886, 50.0187]
 
 // Neutralny podkład bez klucza API. Atrybucja OSM pokazuje się sama.
 const STYL_MAPY = "https://tiles.openfreemap.org/styles/positron"
-
-// Granice i numery działek z Krajowej Integracji Ewidencji Gruntów (GUGiK, WMS).
-const EWIDENCJA =
-  "https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0" +
-  "&LAYERS=dzialki,numery_dzialek&STYLES=&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857" +
-  "&BBOX={bbox-epsg-3857}&WIDTH=512&HEIGHT=512"
-
-// Serwer ewidencji rysuje granice dopiero od skali około 1:5000; sprawdzone, że od powiększenia 17.
-const ZOOM_EWIDENCJI = 17
 
 const PUSTE: FeatureCollection = { type: "FeatureCollection", features: [] }
 
@@ -80,6 +72,15 @@ type Props = {
   className?: string
 }
 
+// MapLibre wymaga WebGL2. Bez niego pokazujemy komunikat zamiast mapy, a reszta panelu działa.
+function maWebGl2() {
+  try {
+    return document.createElement("canvas").getContext("webgl2") !== null
+  } catch {
+    return false
+  }
+}
+
 export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
   const kontener = useRef<HTMLDivElement>(null)
   const mapa = useRef<MapaMaplibre | null>(null)
@@ -94,6 +95,7 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
   const [szukane, setSzukane] = useState("")
   const [rysowanieStan, setRysowanieStan] = useState<Rysowanie>("brak")
   const [zoom, setZoom] = useState(14)
+  const [bezMapy] = useState(() => !maWebGl2())
 
   useEffect(() => {
     wyborRef.current = wybor
@@ -101,7 +103,7 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
 
   // Mapę tworzymy raz. Dane działki zmieniamy w osobnych efektach.
   useEffect(() => {
-    if (!kontener.current) {
+    if (!kontener.current || bezMapy) {
       return
     }
 
@@ -115,18 +117,27 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
     nowa.addControl(new NavigationControl({ showCompass: false }), "bottom-right")
 
     nowa.on("load", () => {
-      nowa.addSource("ewidencja", {
+      // Granice i numery działek z ewidencji GUGiK, przerobione na wyraźniejsze (src/lib/ewidencja.ts).
+      nowa.addSource("ewidencja-granice", {
         type: "raster",
-        tiles: [EWIDENCJA],
+        tiles: [KAFLE_GRANIC],
         tileSize: 512,
+        minzoom: ZOOM_GRANIC,
         attribution: "Ewidencja: GUGiK",
+      })
+      nowa.addSource("ewidencja-numery", {
+        type: "raster",
+        tiles: [KAFLE_NUMEROW],
+        tileSize: 512,
+        minzoom: ZOOM_NUMEROW,
       })
       nowa.addSource("okregi", { type: "geojson", data: PUSTE })
       nowa.addSource("transakcje", { type: "geojson", data: PUSTE })
       nowa.addSource("dzialka", { type: "geojson", data: PUSTE })
       nowa.addSource("srodek", { type: "geojson", data: PUSTE })
 
-      nowa.addLayer({ id: "ewidencja", type: "raster", source: "ewidencja", minzoom: ZOOM_EWIDENCJI })
+      nowa.addLayer({ id: "ewidencja-granice", type: "raster", source: "ewidencja-granice", minzoom: ZOOM_GRANIC })
+      nowa.addLayer({ id: "ewidencja-numery", type: "raster", source: "ewidencja-numery", minzoom: ZOOM_NUMEROW })
       nowa.addLayer({
         id: "okregi",
         type: "line",
@@ -250,7 +261,7 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
       dymek
         .setLngLat(obiekt.geometry.coordinates as Punkt)
         .setHTML(
-          `<strong>${zaM2(p.cena)}</strong><br>${p.data} · ${liczba(p.powierzchnia)} m²<br>${nazwaOpcji(RODZAJE_GRUNTU, p.rodzaj)}`
+          `<strong>${zaM2(p.cena)}</strong><br>${data(p.data)} · ${liczba(p.powierzchnia)} m²<br>${nazwaOpcji(RODZAJE_GRUNTU, p.rodzaj)}`
         )
         .addTo(nowa)
     })
@@ -277,7 +288,7 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
       nowa.remove()
       mapa.current = null
     }
-  }, [])
+  }, [bezMapy])
 
   useEffect(() => {
     rysowanieRef.current = rysowanieStan
@@ -431,19 +442,22 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
             />
           </form>
 
-          <Button variant="outline" onClick={zacznijRysowanie}>
+          <Button variant="outline" onClick={zacznijRysowanie} disabled={bezMapy}>
             {rysowanieStan === "brak" ? <PencilIcon data-icon="inline-start" /> : <RotateCcwIcon data-icon="inline-start" />}
             {rysowanieStan === "brak" ? "Narysuj granicę" : "Rysuj od nowa"}
           </Button>
-          <Button onClick={zakonczRysowanie} disabled={rysowanieStan === "brak"}>
-            <CheckIcon data-icon="inline-start" />
-            Zakończ wybieranie pola
-          </Button>
+          {/* Przyciski rysowania pokazujemy dopiero w trakcie rysowania. */}
           {rysowanieStan !== "brak" && (
-            <Button variant="ghost" onClick={wylaczRysowanie}>
-              <XIcon data-icon="inline-start" />
-              Anuluj
-            </Button>
+            <>
+              <Button onClick={zakonczRysowanie}>
+                <CheckIcon data-icon="inline-start" />
+                Zakończ wybieranie pola
+              </Button>
+              <Button variant="ghost" onClick={wylaczRysowanie}>
+                <XIcon data-icon="inline-start" />
+                Anuluj
+              </Button>
+            </>
           )}
         </div>
       )}
@@ -470,7 +484,19 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
         </div>
       )}
 
-      {wybor && rysowanieStan === "brak" && zoom < ZOOM_EWIDENCJI && (
+      {bezMapy && (
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center justify-center bg-muted p-6 text-center text-sm text-muted-foreground",
+            wybor && "top-13"
+          )}
+        >
+          Ta przeglądarka nie obsługuje WebGL2, więc mapy nie da się wyświetlić.
+          {wybor ? " Działkę możesz wyszukać po numerze." : ""}
+        </div>
+      )}
+
+      {wybor && !bezMapy && rysowanieStan === "brak" && zoom < ZOOM_GRANIC && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-sm bg-primary px-3 py-1.5 text-xs text-primary-foreground">
           Przybliż mapę, aby zobaczyć granice działek
         </div>

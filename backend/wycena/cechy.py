@@ -5,10 +5,8 @@ from datetime import date
 
 from psycopg import sql
 
-from etl.cechy_osm.polska import ODLEGLOSCI
 from etl.wczytanie_i_czyszczenie_cech.pozostale import PRZEZNACZENIA
 
-# Obręb jak w identyfikatorze działki, np. 126102_9.0001.
 TERYT_OBREBU = re.compile(r"^(\d{2})(\d{2})(\d{2})_([1-9])\.(\d{4})$")
 
 
@@ -40,7 +38,6 @@ def cechy_formularza(dzialka):
         "log_powierzchnia": math.log(powierzchnia),
     }
 
-    # Przy wycenie przeznaczenie pochodzi z formularza: jedna wybrana kategoria.
     for kategoria in PRZEZNACZENIA:
         cechy["przezn_" + kategoria] = int(dzialka["przeznaczenie"] == kategoria)
     cechy["przezn_brak_danych"] = 0
@@ -49,8 +46,6 @@ def cechy_formularza(dzialka):
 
 
 def cechy_granicy(baza, dzialka):
-    # Granica przychodzi z panelu w stopniach. Pole, obwód i środek liczymy
-    # w EPSG:2180, tak samo jak w ETL.
     granica = json.dumps({"type": "MultiPolygon", "coordinates": dzialka["granica"]})
     pole, obwod, x, y, poprawna = baza.execute(
         """
@@ -72,7 +67,6 @@ def cechy_granicy(baza, dzialka):
 
 
 def odleglosc(baza, warstwa, punkt):
-    # Najbliższy obiekt z indeksu GiST. Odległość do linii lub krawędzi, jak STRtree w ETL.
     zapytanie = sql.SQL(
         """
         SELECT ST_Distance(geometry, ST_SetSRID(ST_MakePoint(%(x)s, %(y)s), 2180))
@@ -85,25 +79,19 @@ def odleglosc(baza, warstwa, punkt):
     return wiersz[0] if wiersz else None
 
 
-def liczba_w_promieniach(baza, warstwa, punkt, promienie):
-    # Jak cKDTree w ETL: liczymy środki obiektów w promieniu, nie same obrysy.
-    liczniki = []
-    for promien in promienie:
-        liczniki.append(
-            sql.SQL("count(*) FILTER (WHERE (x - %(x)s)^2 + (y - %(y)s)^2 <= {})").format(sql.Literal(promien**2))
-        )
+def liczba_w_promieniu(baza, warstwa, punkt, promien):
     zapytanie = sql.SQL(
         """
-        SELECT {}
+        SELECT count(*)
         FROM {}
-        WHERE geometry && ST_Expand(ST_SetSRID(ST_MakePoint(%(x)s, %(y)s), 2180), {})
+        WHERE geometry && ST_Expand(ST_SetSRID(ST_MakePoint(%(x)s, %(y)s), 2180), {promien})
+          AND (x - %(x)s)^2 + (y - %(y)s)^2 <= {promien} * {promien}
         """
-    ).format(sql.SQL(", ").join(liczniki), sql.Identifier("dane", "osm_" + warstwa), sql.Literal(max(promienie)))
-    return list(baza.execute(zapytanie, punkt).fetchone())
+    ).format(sql.Identifier("dane", "osm_" + warstwa), promien=sql.Literal(promien))
+    return baza.execute(zapytanie, punkt).fetchone()[0]
 
 
 def pokrycie(baza, warstwa, punkt, promien=500):
-    # Część koła zajęta przez warstwę. Nakładające się obszary liczymy raz.
     zapytanie = sql.SQL(
         """
         WITH kolo AS (SELECT ST_Buffer(ST_SetSRID(ST_MakePoint(%(x)s, %(y)s), 2180), {}, 'quad_segs=16') AS k)
@@ -120,64 +108,31 @@ def pokrycie(baza, warstwa, punkt, promien=500):
 
 
 def drogi(baza, punkt):
-    cechy = {}
-    for warstwa in ["drogi", "utwardzone", "glowne", "lokalne", "autostrady", "wezly", "przystanki"]:
-        cechy[ODLEGLOSCI[warstwa]] = odleglosc(baza, warstwa, punkt)
-    return cechy
+    return {
+        "odl_droga_dowolna_m": odleglosc(baza, "drogi", punkt),
+        "odl_droga_utwardzona_m": odleglosc(baza, "utwardzone", punkt),
+    }
 
 
 def zabudowa(baza, punkt):
-    cechy = {}
-    for warstwa in ["budynki", "mieszkalne"]:
-        cechy[ODLEGLOSCI[warstwa]] = odleglosc(baza, warstwa, punkt)
-
-    liczby = liczba_w_promieniach(baza, "budynki", punkt, [250, 500, 1000])
-    cechy["liczba_budynkow_250m"] = liczby[0]
-    cechy["liczba_budynkow_500m"] = liczby[1]
-    cechy["liczba_budynkow_1000m"] = liczby[2]
-
-    cechy["udzial_zabudowy_500m"] = pokrycie(baza, "zabudowa", punkt)
-    w_zabudowie = odleglosc(baza, "zabudowa", punkt)
-    cechy["czy_w_terenie_zabudowanym"] = None if w_zabudowie is None else float(w_zabudowie == 0)
-    return cechy
+    return {
+        "odl_najblizszy_budynek_m": odleglosc(baza, "budynki", punkt),
+        "liczba_budynkow_1000m": liczba_w_promieniu(baza, "budynki", punkt, 1000),
+    }
 
 
-def przyroda_i_uslugi(baza, punkt):
-    cechy = {}
-    cechy["udzial_lasu_500m"] = pokrycie(baza, "las", punkt)
-    for warstwa in ["woda", "szkoly", "sklepy", "przedszkola"]:
-        cechy[ODLEGLOSCI[warstwa]] = odleglosc(baza, warstwa, punkt)
-    cechy["liczba_poi_1km"] = liczba_w_promieniach(baza, "poi", punkt, [1000])[0]
-
-    # Jak w ETL: woda w 200 m to zbiornik albo rzeka.
-    woda = cechy["odl_woda_m"]
-    rzeka = odleglosc(baza, "rzeki", punkt)
-    blisko = (woda is not None and woda <= 200) or (rzeka is not None and rzeka <= 200)
-    znane = (woda is not None and rzeka is not None) or blisko
-    cechy["czy_woda_w_200m"] = float(blisko) if znane else None
-    return cechy
+def las_i_uslugi(baza, punkt):
+    return {
+        "udzial_lasu_500m": pokrycie(baza, "las", punkt),
+        "liczba_poi_1km": liczba_w_promieniu(baza, "poi", punkt, 1000),
+    }
 
 
 def miasta(baza, punkt):
-    cechy = {}
-    for warstwa in ["miejscowosci", "miasta_10k", "miasta_50k", "wroclaw", "granica"]:
-        cechy[ODLEGLOSCI[warstwa]] = odleglosc(baza, warstwa, punkt)
-
-    wiersz = baza.execute(
-        """
-        SELECT population
-        FROM dane.osm_miasta
-        ORDER BY geometry <-> ST_SetSRID(ST_MakePoint(%(x)s, %(y)s), 2180)
-        LIMIT 1
-        """,
-        punkt,
-    ).fetchone()
-    cechy["ludnosc_najblizszego_miasta"] = wiersz[0] if wiersz else None
-    return cechy
+    return {"odl_miasto_pow_50k_m": odleglosc(baza, "miasta_50k", punkt)}
 
 
 def parametry_sasiedztwa(cechy, dzialka):
-    # Wcześniejsze sprzedaże tej samej działki nie są sąsiadami. Narysowana granica nie ma numeru.
     identyfikator = dzialka["identyfikator"] if dzialka["zrodloGranicy"] == "uldk" else None
     return {
         "x": cechy["x_2180"],
@@ -191,7 +146,6 @@ def parametry_sasiedztwa(cechy, dzialka):
 
 
 def ceny_w_promieniu(baza, parametry):
-    # Tak jak w ETL: tylko ściśle wcześniejsze dni i okno 24 miesięcy.
     mediana_5km, mediana_2km, liczba_2km, mediana_2km_uzytek = baza.execute(
         """
         SELECT
@@ -219,7 +173,6 @@ def ceny_w_promieniu(baza, parametry):
 
 
 def najblizsza_transakcja(baza, parametry):
-    # Bez okna czasowego: najbliższa wcześniejsza sprzedaż może być sprzed lat.
     wiersz = baza.execute(
         """
         SELECT ST_Distance(srodek, ST_SetSRID(ST_MakePoint(%(x)s, %(y)s), 2180))
@@ -268,23 +221,5 @@ def ceny_w_obszarze(baza, parametry):
     }
 
 
-# Kolejność grup obliczeń. Tych samych list używa panel (api.py), żeby liczyć tak samo.
-ETAPY_OSM = [drogi, zabudowa, przyroda_i_uslugi, miasta]
+ETAPY_OSM = [drogi, zabudowa, las_i_uslugi, miasta]
 ETAPY_SASIEDZTWA = [ceny_w_promieniu, najblizsza_transakcja, ceny_w_obszarze]
-
-
-def policz_cechy(baza, dzialka):
-    # Wszystkie 74 cechy działki bez wysyłania postępu: do testów i skryptów w terminalu.
-    cechy = cechy_formularza(dzialka)
-    nowe, pole = cechy_granicy(baza, dzialka)
-    cechy.update(nowe)
-
-    punkt = {"x": cechy["x_2180"], "y": cechy["y_2180"]}
-    for etap in ETAPY_OSM:
-        cechy.update(etap(baza, punkt))
-
-    parametry = parametry_sasiedztwa(cechy, dzialka)
-    for etap in ETAPY_SASIEDZTWA:
-        cechy.update(etap(baza, parametry))
-
-    return cechy, pole, parametry

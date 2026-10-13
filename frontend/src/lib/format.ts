@@ -38,6 +38,12 @@ export function czas(sekundy: number) {
   return `${liczba(sekundy, 1)} s`
 }
 
+// Data z backendu (RRRR-MM-DD) po polsku: DD.MM.RRRR.
+export function data(iso: string) {
+  const [rok, miesiac, dzien] = iso.split("-")
+  return rok && miesiac && dzien ? `${dzien}.${miesiac}.${rok}` : iso
+}
+
 // Duże kwoty skrótem, np. „6,1 mln zł”.
 export function kwota(wartosc: number) {
   if (wartosc >= 1_000_000) {

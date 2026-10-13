@@ -51,6 +51,10 @@ npm run build
 
 - `src/App.tsx` — stan strony, wycena przez API i tryb „co jeśli”.
 - `src/lib/api.ts` — zapytania do serwera wyceny (wycena strumieniowa, przeliczenie, podpowiedź).
+- `src/lib/historia.ts` — „Historia wycen”: ostatnie wyceny zapisane w przeglądarce.
+- `src/lib/eksport.ts` — „Eksportuj CSV”: raport wyceny dla Excela (wynik, modele, 74 cechy i ich wkład).
+- `src/lib/ewidencja.ts` — granice i numery działek z WMS GUGiK, przerysowane w przeglądarce na wyraźniejsze (granice od zoomu 15, numery od 17).
+- `src/lib/animacja.ts` — licznik kwot i wykrywanie systemowego „ogranicz ruch”. Tempo odtwarzania procesu: `TEMPO_PODKROKU` i `TEMPO_KROKU` w `src/App.tsx`.
 - `src/komponenty/` — moduły panelu (formularz, proces, mapa, wynik, cechy, słownik…).
 - `src/dane/slowniki.ts` — opcje formularza z kodami RCN.
 - `src/dane/kroki.ts` — opisy sześciu kroków wyceny, zgodne z `backend/api.py`.
@@ -58,4 +62,4 @@ npm run build
 - `src/komponenty/OpisCech.tsx` — widok „Opis cech” ze spisem treści i statystykami z `GET /api/model`.
 - `src/typy.ts` — typy danych zwracanych przez backend.
 - `src/components/ui/` — komponenty shadcn (Base UI), dopasowane do motywu.
-- `src/index.css` — kolory, font i zaokrąglenia z Figmy.
+- `src/index.css` — kolory z Figmy, font Geist z cyframi tabelarycznymi, zaokrąglenia 4 px.

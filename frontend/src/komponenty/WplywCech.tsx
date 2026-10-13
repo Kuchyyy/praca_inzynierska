@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { ChartBarIcon } from "lucide-react"
 
 import {
   Card,
@@ -20,7 +21,7 @@ import { IkonaModulu } from "./IkonaModulu"
 // Tyle cech pokazujemy osobno, resztę sumujemy w jednym wierszu.
 const POKAZANE = 8
 
-// Metoda rozkładu wyceny dla każdego modelu, jak w backend/wycena/model.py.
+// Metoda rozkładu wyceny dla każdego modelu, jak w backend/wycen_dzialke.py.
 const METODA: Record<string, string> = {
   "Linear Regression": "rozkład liniowy względem średniej działki z treningu",
   "Bayesian Ridge": "rozkład liniowy względem średniej działki z treningu",
@@ -65,7 +66,7 @@ export function WplywCech({ wyjasnienia, cechy, waznosc, najlepszy }: Props) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2.5">
-          <IkonaModulu kolor="wynik" />
+          <IkonaModulu kolor="wynik" ikona={ChartBarIcon} />
           Wpływ cech na tę wycenę
         </CardTitle>
         <CardDescription className="pl-8.5">
@@ -99,7 +100,7 @@ export function WplywCech({ wyjasnienia, cechy, waznosc, najlepszy }: Props) {
           <TabsContent value="wycena" className="flex flex-col gap-3">
             <div className="flex justify-between rounded-sm bg-muted px-3 py-2 text-xs">
               <span className="text-muted-foreground">Punkt startowy: przeciętna wycena modelu w treningu</span>
-              <span className="font-mono font-medium">{zaM2(wyjasnienie.start)}</span>
+              <span className="font-medium">{zaM2(wyjasnienie.start)}</span>
             </div>
 
             {wiersze.map((w) => {
@@ -109,7 +110,7 @@ export function WplywCech({ wyjasnienia, cechy, waznosc, najlepszy }: Props) {
                 <div key={w.kod} className="flex items-center gap-3">
                   <div className="flex w-56 shrink-0 flex-col">
                     <span className="text-sm">{w.nazwa}</span>
-                    {w.wartosc && <span className="font-mono text-xs text-pomocniczy">{w.wartosc}</span>}
+                    {w.wartosc && <span className="text-xs text-pomocniczy">{w.wartosc}</span>}
                   </div>
                   <div className="relative h-4 flex-1">
                     <div className="absolute inset-y-0 left-1/2 w-px bg-linia-mocna" />
@@ -119,7 +120,7 @@ export function WplywCech({ wyjasnienia, cechy, waznosc, najlepszy }: Props) {
                     />
                   </div>
                   <span
-                    className={cn("w-16 text-right font-mono text-xs font-medium", wzrost ? "text-sukces" : "text-spadek")}
+                    className={cn("w-16 text-right text-xs font-medium", wzrost ? "text-sukces" : "text-spadek")}
                   >
                     {zeZnakiem(w.wklad)}
                   </span>
@@ -130,7 +131,7 @@ export function WplywCech({ wyjasnienia, cechy, waznosc, najlepszy }: Props) {
             <Separator />
             <div className="flex justify-between text-sm font-medium">
               <span>Wycena modelu {wyjasnienie.model}</span>
-              <span className="font-mono">{zaM2(wyjasnienie.cena)}</span>
+              <span>{zaM2(wyjasnienie.cena)}</span>
             </div>
             <span className="text-xs text-muted-foreground">
               Wkłady w zł/m², metoda: {METODA[wyjasnienie.model] ?? "wartości SHAP"}. Start plus suma wkładów daje
@@ -152,7 +153,7 @@ export function WplywCech({ wyjasnienia, cechy, waznosc, najlepszy }: Props) {
                     style={{ width: `${(Math.max(wartosc, 0) / najwiekszaWaznosc) * 100}%` }}
                   />
                 </div>
-                <span className="w-20 text-right font-mono text-xs font-medium">{zeZnakiem(wartosc)}</span>
+                <span className="w-20 text-right text-xs font-medium">{zeZnakiem(wartosc)}</span>
               </div>
             ))}
           </TabsContent>

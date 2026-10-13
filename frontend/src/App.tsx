@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { MapIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import {
@@ -11,6 +12,9 @@ import {
 import { OPISY_CECH } from "@/dane/opisyCech"
 import { pobierzOpisModelu, podpowiedzObrebu, przeliczCechy, wycenDzialke } from "@/lib/api"
 import { zRysunku, zUldk } from "@/lib/dzialka"
+import { ograniczonyRuch } from "@/lib/animacja"
+import { pobierzRaport } from "@/lib/eksport"
+import { dopiszDoHistorii, wczytajHistorie, wyczyscHistorie, type WpisHistorii } from "@/lib/historia"
 import { dzialkaPoNumerze, dzialkaWPunkcie, obrebWPunkcie } from "@/lib/uldk"
 import { srodek } from "@/lib/geometria"
 import { cn } from "@/lib/utils"
@@ -42,6 +46,11 @@ import type {
 
 const POCZATEK: Postep = { krok: 0, podkrok: 0, kroki: [] }
 
+// Backend liczy wycenę w ułamku sekundy. Panel odtwarza kroki w czytelnym tempie (razem ok. 3 s),
+// a w węzłach pokazuje prawdziwe czasy obliczeń z backendu.
+const TEMPO_PODKROKU = 120
+const TEMPO_KROKU = 260
+
 export function App() {
   const [etap, setEtap] = useState<Etap>("dane")
   // Opis cech to osobny widok tej samej strony. Wycena zostaje w pamięci pod spodem.
@@ -59,10 +68,13 @@ export function App() {
   const [wybranaCecha, setWybranaCecha] = useState(OPISY_CECH[0].kod)
   const [szukam, setSzukam] = useState(false)
   const [komunikat, setKomunikat] = useState("")
+  const [historia, setHistoria] = useState<WpisHistorii[]>(wczytajHistorie)
   // Liczą zapytania, żeby spóźniona odpowiedź nie nadpisała nowszej.
   const numerZapytania = useRef(0)
   const numerWyceny = useRef(0)
   const pozycjaWyceny = useRef(0)
+  // Ustawione przez „Pomiń animację” albo systemowe „ogranicz ruch”: kroki bez czekania.
+  const pomin = useRef(false)
 
   // Metryki i statystyki modeli do opisu cech. Pobierane raz, przy starcie panelu.
   useEffect(() => {
@@ -144,8 +156,8 @@ export function App() {
   }
 
   // Backend liczy cechy i modele, a po każdym kroku przysyła postęp.
-  async function wycen() {
-    if (!dzialka) {
+  async function wycen(dane: DaneDzialki | null = dzialka) {
+    if (!dane) {
       return
     }
     const numer = ++numerWyceny.current
@@ -155,32 +167,54 @@ export function App() {
     setPrzeliczenie(null)
     setRozwiniety(false)
     setEtap("liczenie")
+    pomin.current = ograniczonyRuch()
 
+    function czekaj(ms: number) {
+      return pomin.current ? Promise.resolve() : new Promise((gotowe) => setTimeout(gotowe, ms))
+    }
+
+    // Zdarzenia z backendu trafiają do kolejki i pokazują się po kolei, każde przez chwilę.
+    let kolejka = Promise.resolve()
     try {
-      const gotowy = await wycenDzialke(dzialka, (zdarzenie) => {
-        if (numer !== numerWyceny.current) {
-          return
-        }
-        if ("podkrok" in zdarzenie) {
-          setPostep((p) => ({ ...p, krok: zdarzenie.krok - 1, podkrok: zdarzenie.podkrok + 1 }))
-        } else {
-          const gotowyKrok = { numer: zdarzenie.krok, wynik: zdarzenie.wynik, czas: zdarzenie.czas }
-          setPostep((p) => ({ krok: zdarzenie.krok, podkrok: 0, kroki: [...p.kroki, gotowyKrok] }))
-        }
+      const gotowy = await wycenDzialke(dane, (zdarzenie) => {
+        kolejka = kolejka.then(async () => {
+          if (numer !== numerWyceny.current) {
+            return
+          }
+          if ("podkrok" in zdarzenie) {
+            setPostep((p) => ({ ...p, krok: zdarzenie.krok - 1, podkrok: zdarzenie.podkrok + 1 }))
+            await czekaj(TEMPO_PODKROKU)
+          } else {
+            const gotowyKrok = { numer: zdarzenie.krok, wynik: zdarzenie.wynik, czas: zdarzenie.czas }
+            setPostep((p) => ({ krok: zdarzenie.krok, podkrok: 0, kroki: [...p.kroki, gotowyKrok] }))
+            await czekaj(TEMPO_KROKU)
+          }
+        })
       })
+      await kolejka
       if (numer === numerWyceny.current) {
         setWynik(gotowy)
         setEtap("wynik")
+        setHistoria(dopiszDoHistorii(dane, gotowy))
         // Gdy serwer nie działał przy starcie panelu, opis modeli pobieramy teraz.
         if (!opisModelu) {
           pobierzOpisModelu().then(setOpisModelu)
         }
       }
     } catch (e) {
+      // Błąd pokazujemy dopiero po odtworzeniu kroków, które zdążyły się policzyć.
+      await kolejka
       if (numer === numerWyceny.current) {
         setBlad(e instanceof Error ? e.message : String(e))
       }
     }
+  }
+
+  // Wycena z historii: te same dane działki, liczone od nowa obecnymi modelami.
+  function otworzZHistorii(wpis: WpisHistorii) {
+    setWidok("wycena")
+    setDzialka(wpis.dzialka)
+    wycen(wpis.dzialka)
   }
 
   function anuluj() {
@@ -218,15 +252,19 @@ export function App() {
         etap={etap}
         widok={widok}
         dzialka={dzialka}
+        historia={historia}
         onAnuluj={anuluj}
         onPonownie={() => setEtap("dane")}
+        onEksportuj={() => dzialka && wynik && pobierzRaport(dzialka, wynik)}
+        onOtworz={otworzZHistorii}
+        onWyczyscHistorie={() => setHistoria(wyczyscHistorie())}
         onCechy={() => otworzCechy(null)}
         onWroc={wrocDoWyceny}
       />
 
       <main className="flex flex-col gap-4 p-5">
         {widok === "cechy" && (
-          <OpisCech model={opisModelu} wynik={wynik} cel={celCechy} onWroc={wrocDoWyceny} />
+          <OpisCech model={opisModelu} wynik={wynik} cel={celCechy} />
         )}
 
         {/* Ukrywamy zamiast usuwać, żeby powrót z opisu cech nie gubił zmian w tabeli cech. */}
@@ -256,7 +294,7 @@ export function App() {
                 />
               </CardContent>
             </Card>
-            <FormularzDanych dzialka={dzialka} podpowiedz={podpowiedz} onZmien={setDzialka} onWycen={wycen} />
+            <FormularzDanych dzialka={dzialka} podpowiedz={podpowiedz} onZmien={setDzialka} onWycen={() => wycen()} />
           </div>
         )}
 
@@ -270,16 +308,17 @@ export function App() {
             rozwiniety={rozwiniety}
             onPrzelacz={() => setRozwiniety(!rozwiniety)}
             onWroc={() => setEtap("dane")}
+            onPomin={() => (pomin.current = true)}
           />
         )}
 
         {etap === "wynik" && dzialka && wynik && biezaca && (
           <>
-            <div className="grid grid-cols-[1fr_440px] gap-4">
+            <div className="grid grid-cols-[1fr_440px] gap-4 animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2.5">
-                    <IkonaModulu kolor="sukces" />
+                    <IkonaModulu kolor="sukces" ikona={MapIcon} />
                     Mapa
                   </CardTitle>
                   <CardDescription className="pl-8.5">Działka i transakcje z okolicy</CardDescription>
@@ -309,7 +348,7 @@ export function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-3 fill-mode-both delay-150 duration-500">
               <WplywCech
                 wyjasnienia={biezaca.wyjasnienia}
                 cechy={wynik.cechy}
@@ -326,7 +365,7 @@ export function App() {
               />
             </div>
 
-            <div className="grid grid-cols-[1fr_440px] gap-4">
+            <div className="grid grid-cols-[1fr_440px] gap-4 animate-in fade-in slide-in-from-bottom-3 fill-mode-both delay-300 duration-500">
               <HistoriaCen
                 gmina={dzialka.gmina}
                 historia={wynik.historia}

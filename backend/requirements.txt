@@ -3,8 +3,6 @@ pyarrow
 numpy
 shapely
 scipy
-geopandas
-pyrosm
 scikit-learn
 pyproj
 pyogrio

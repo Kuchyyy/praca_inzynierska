@@ -39,7 +39,7 @@ Port jest dostępny tylko lokalnie. Backend powinien używać `dzialki_app`,
 który nie jest superużytkownikiem i nie może tworzyć baz ani ról. Administrator
 wykonuje migracje i tworzy tabele w schemacie `dane`; aplikacja automatycznie
 otrzymuje do nich prawa odczytu i zapisu. PostGIS jest w schemacie `public`.
-Nie utworzono jeszcze tabel domenowych ani nie zaimportowano GeoParquet.
+Tabele z danymi tworzy import (etap 7 w `main.py`, `IMPORTUJ_DO_BAZY = True`).
 
 Konsola administratora:
 
