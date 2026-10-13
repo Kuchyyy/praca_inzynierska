@@ -1,3 +1,5 @@
+import { MousePointerClickIcon, PencilIcon, SearchIcon, type LucideIcon } from "lucide-react"
+
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -48,10 +50,17 @@ import type { DaneDzialki, Kolor, Podpowiedz } from "@/typy"
 // pozostałe 30: powierzchnia, rodzaj gruntu, prawo, sprzedający i 26 flag przeznaczenia.
 const AUTOMATYCZNE: { kolor: Kolor; nazwa: string }[] = [
   { kolor: "sukces", nazwa: "Lokalizacja 5" },
-  { kolor: "ostrzezenie", nazwa: "Otoczenie OSM 27" },
+  { kolor: "ostrzezenie", nazwa: "Otoczenie OSM 7" },
   { kolor: "rynek", nazwa: "Sąsiedztwo cenowe 8" },
   { kolor: "akcja", nazwa: "Geometria 2" },
   { kolor: "model", nazwa: "Czas 2" },
+]
+
+// Trzy sposoby wskazania działki, pokazywane zanim użytkownik wybierze pierwszą.
+const SPOSOBY_WYBORU: { ikona: LucideIcon; tytul: string; opis: string }[] = [
+  { ikona: MousePointerClickIcon, tytul: "Kliknij na mapie", opis: "Przybliż mapę, aż pojawią się granice działek, i kliknij wybraną." },
+  { ikona: SearchIcon, tytul: "Wyszukaj po numerze", opis: "Nazwa obrębu i numer, np. Kokotów 43/1, albo pełny identyfikator TERYT." },
+  { ikona: PencilIcon, tytul: "Narysuj granicę", opis: "Gdy działki nie ma w ewidencji albo chcesz wycenić jej część." },
 ]
 
 const OPCJE_RODZAJU = RODZAJE_GRUNTU.map((r) => ({ label: r.nazwa, value: r.kod }))
@@ -74,10 +83,25 @@ export function FormularzDanych({ dzialka, podpowiedz, onZmien, onWycen }: Props
         <CardHeader>
           <CardTitle>Dane do wyceny</CardTitle>
           <CardDescription>
-            Kliknij działkę na mapie albo wyszukaj ją po numerze. Dane z ewidencji uzupełnią
-            się same.
+            Wskaż działkę na mapie. Dane z ewidencji uzupełnią się same.
           </CardDescription>
         </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {SPOSOBY_WYBORU.map(({ ikona: Ikona, tytul, opis }) => (
+            <div key={tytul} className="flex items-start gap-3 rounded-sm border p-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-sm bg-muted">
+                <Ikona className="size-4" />
+              </span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">{tytul}</span>
+                <span className="text-xs text-muted-foreground">{opis}</span>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+        <CardFooter className="text-xs text-muted-foreground">
+          Potem uzupełnisz przeznaczenie, prawo do gruntu i sprzedającego. Resztę cech policzy serwer wyceny.
+        </CardFooter>
       </Card>
     )
   }
@@ -136,7 +160,7 @@ export function FormularzDanych({ dzialka, podpowiedz, onZmien, onWycen }: Props
                 {wiersze.map(([nazwa, wartosc]) => (
                   <TableRow key={nazwa}>
                     <TableCell className="text-muted-foreground">{nazwa}</TableCell>
-                    <TableCell className="text-right font-mono">{wartosc}</TableCell>
+                    <TableCell className="text-right">{wartosc}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -146,14 +170,14 @@ export function FormularzDanych({ dzialka, podpowiedz, onZmien, onWycen }: Props
               <Field data-invalid={powierzchnia > 0 ? undefined : true}>
                 <FieldLabel htmlFor="powierzchnia">
                   Powierzchnia [m²] <span className="text-spadek">*</span>
-                  <Badge variant={narysowana ? "ostrzezenie" : "akcja"} className="ml-auto font-mono">
+                  <Badge variant={narysowana ? "ostrzezenie" : "akcja"} className="ml-auto">
                     {narysowana ? "z rysunku" : "z ULDK"}
                   </Badge>
                 </FieldLabel>
                 <Input
                   id="powierzchnia"
                   inputMode="decimal"
-                  className="font-mono"
+                 
                   value={dzialka.powierzchnia}
                   onChange={(e) => zmien("powierzchnia", e.target.value)}
                   aria-invalid={powierzchnia > 0 ? undefined : true}
@@ -305,7 +329,7 @@ export function FormularzDanych({ dzialka, podpowiedz, onZmien, onWycen }: Props
               <Input
                 id="data"
                 type="date"
-                className="font-mono"
+               
                 value={dzialka.dataWyceny}
                 onChange={(e) => zmien("dataWyceny", e.target.value)}
               />
@@ -329,7 +353,7 @@ export function FormularzDanych({ dzialka, podpowiedz, onZmien, onWycen }: Props
 
         <div className="flex flex-col gap-2 pb-4">
           <span className="text-xs text-muted-foreground">
-            Resztę z 74 cech program policzy sam po kliknięciu „Wyceń”:
+            Resztę z 54 cech program policzy sam po kliknięciu „Wyceń”:
           </span>
           <div className="flex flex-wrap gap-1.5">
             {AUTOMATYCZNE.map((g) => (

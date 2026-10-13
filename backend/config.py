@@ -1,32 +1,37 @@
-# Sciezki i progi. Zmiany ustawien robie tutaj.
-
 SCIEZKA_SUROWE = "db/dane/surowe/rcn/0_transakcje_ceny_dzialki.parquet"
-SCIEZKA_OCZYSZCZONE = "db/dane/gotowe/polska_oczyszczone"
-DATA_DO = "2026-10-02"
-WIELKOSC_PARTII = 25000
-ZAPAS_DYSKU_GIB = 10
-SCIEZKA_POSREDNIE = "db/dane/posrednie"
+SCIEZKA_OSM = "db/dane/surowe/osm/poland-260930.osm.pbf"
+
+SCIEZKA_OCZYSZCZONE = "db/dane/gotowe/polska_oczyszczone/transakcje.parquet"
 SCIEZKA_ULDK_GRANICE = "db/dane/posrednie/uldk_granice.sqlite"
-WOJEWODZTWO = None
-LIMIT_ULDK = 0
-PRZERWA_ULDK = 0.1
+SCIEZKA_PACZKI_EGIB = "db/dane/posrednie/egib_paczki"
+SCIEZKA_Z_GRANICAMI = "db/dane/gotowe/polska_po_egib/transakcje.parquet"
+SCIEZKA_WARSTWY_OSM = "db/dane/posrednie/osm_polska"
+SCIEZKA_CECHY_OSM = "db/dane/gotowe/polska_cechy_osm/transakcje.parquet"
+SCIEZKA_PELNE_CECHY = "db/dane/gotowe/polska_pelne_cechy/transakcje.parquet"
+SCIEZKA_MODELU = "db/dane/gotowe/model.joblib"
+
+# Etapy, które pobierają dane z sieci, zapisują do bazy albo uczą modele, włączamy ręcznie.
 UZUPELNIJ_ULDK = False
-SCIEZKA_PO_ULDK = "db/dane/gotowe/polska_po_uldk"
+UZUPELNIJ_EGIB = False
+IMPORTUJ_DO_BAZY = False
+TRENUJ_MODELE = False
+SYMULACJA_CECH = False
+WALIDACJA_KROCZACA = False
+WAZNOSC_CECH = False
 
-SCIEZKA_ODRZUCONE = "db/dane/posrednie/odrzucone"
-SCIEZKA_GOTOWE = "db/dane/gotowe"
-
-
+DATA_DO = "2026-10-02"
 ROK_OD = 2015
+TEST_OD = "2025-01-01"
+# Lata walidacji kroczącej (walidacja_kroczaca_modele.py): uczenie na latach wcześniejszych.
+WALIDACJA_LATA = [2021, 2022, 2023, 2024]
+WOJEWODZTWO = None
+WIELKOSC_PARTII = 25000
+PRZERWA_ULDK = 0.1
 
 POWIERZCHNIA_MIN = 100
 POWIERZCHNIA_MAX = 200000
-
-
-# Dopuszczalny stosunek powierzchni z pliku do pola z geometrii.
 TOLERANCJA_POLA_DOL = 0.80
 TOLERANCJA_POLA_GORA = 1.25
-
 
 KOLUMNY_POTRZEBNE = [
     "teryt",
@@ -58,64 +63,29 @@ KOLUMNY_POTRZEBNE = [
     "geometry",
 ]
 
-UZUPELNIJ_EGIB = False
-SCIEZKA_PO_EGIB = "db/dane/gotowe/polska_po_egib"
-
-SCIEZKA_OSM = "db/dane/surowe/osm/poland-260930.osm.pbf"
-SCIEZKA_WARSTWY_OSM = "db/dane/posrednie/osm_polska"
-SCIEZKA_CECHY_OSM = "db/dane/gotowe/polska_cechy_osm"
-LICZ_OSM = False
-
-TEST_OD = "2025-01-01"
-SCIEZKA_PELNE_CECHY = "db/dane/gotowe/polska_pelne_cechy"
-LICZ_POZOSTALE_CECHY = False
-
-SCIEZKA_AUDYT = "db/dane/gotowe/audyt_modelu"
-WALIDACJA_OD = "2024-01-01"
-AUDYTUJ_DANE = True
-
-POSTGRES_HOST = "127.0.0.1"
-# Plik .env leży w katalogu głównym, obok docker-compose.yml.
-POSTGRES_ENV = "../.env"
-POSTGRES_PARTIA = 25000
-SCIEZKA_RAPORT_IMPORTU = "db/dane/posrednie/import_postgis.json"
-
-# Trening modeli do wyceny. Progi cen liczone tylko na treningu.
-TRENUJ_MODELE = False
-SCIEZKA_MODELU = "db/dane/gotowe/model"
-WARIANT_MODELU = "formularz"
 CENA_M2_KWANTYL_DOL = 0.001
 CENA_M2_KWANTYL_GORA = 0.998
-
-# Serwer wyceny dla panelu.
-API_PORT = 8000
-
-# Testy w terminalu: zgodność cech panelu z ETL.
-SPRAWDZ_CECHY_LICZBA = 1000
-SCIEZKA_SPRAWDZENIA_CECH = "db/dane/gotowe/sprawdzenie_cech.json"
-
-# Ważność permutacyjna przy treningu: wielkość próbki testu i liczba przetasowań.
 WAZNOSC_PROBKA = 20000
 WAZNOSC_POWTORZENIA = 3
 
-# Eksperymenty z wyborem cech: python -m model.eksperyment.
-# Uczą na sprzedażach przed WALIDACJA_OD, oceniają na walidacji (do TEST_OD); test zostaje nietknięty.
-# EKSPERYMENT_SERIA: None = jeden eksperyment z ustawień poniżej,
-# "grupy" = wszystkie cechy, a potem po kolei bez każdej grupy,
-# "liczba_cech" = tylko N najważniejszych cech dla każdego N z EKSPERYMENT_LICZBY_CECH.
-# Grupy: sasiedztwo, transakcja, lokalizacja, polozenie, czas, osm, przeznaczenie.
-EKSPERYMENT_SERIA = None
-EKSPERYMENT_NAZWA = "wszystkie"
-EKSPERYMENT_POMIN_GRUPY = []
-EKSPERYMENT_POMIN_CECHY = []
-EKSPERYMENT_TYLKO_CECHY = None
-EKSPERYMENT_LICZBY_CECH = [5, 10, 20, 40]
-EKSPERYMENT_MODELE = ["Gradient Boosting"]
-SCIEZKA_EKSPERYMENTOW = "db/dane/gotowe/eksperymenty"
+POSTGRES_HOST = "127.0.0.1"
+POSTGRES_ENV = "../.env"
+API_PORT = 8000
 
-# Wycena działek z pliku: python -m model.wycen_przyklady.
-SCIEZKA_PRZYKLADOW = "przyklady.json"
-
-# Backtest: wycena prawdziwych sprzedaży z testu pełną ścieżką panelu (python -m model.backtest).
-BACKTEST_LICZBA = 2000
-SCIEZKA_BACKTESTU = "db/dane/gotowe/backtest"
+# Eksperymenty z cechami, uruchamiane w modele.py, gdy SYMULACJA_CECH = False.
+# Nazwa eksperymentu: co pomijamy. Można podać grupę (transakcja, lokalizacja, polozenie,
+# czas, osm, przeznaczenie, sasiedztwo) albo pojedynczą cechę. Pusta lista = wszystkie cechy.
+EKSPERYMENTY = {
+    "wszystkie_cechy": [],
+    "bez_osm": ["osm"],
+    "bez_sasiedztwa": ["sasiedztwo"],
+    "bez_przeznaczenia": ["przeznaczenie"],
+    "bez_polozenia": ["polozenie"],
+    "bez_czasu": ["czas"],
+    "bez_lokalizacji": ["lokalizacja"],
+    "bez_transakcji": ["transakcja"],
+    "bez_osm_i_sasiedztwa": ["osm", "sasiedztwo"],
+    "bez_odl_do_budynku": ["odl_najblizszy_budynek_m"],
+    "bez_ksztaltu_dzialki": ["wskaznik_zwartosci"],
+    "bez_wspolrzednych": ["x_2180", "y_2180"],
+}

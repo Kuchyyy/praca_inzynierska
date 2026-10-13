@@ -100,7 +100,7 @@ export type WkladCechy = {
   wklad: number
 }
 
-// Rozkład wyceny lasu losowego na cechy. Start + suma wkładów = cena.
+// Rozkład wyceny jednego modelu na cechy. Start + suma wkładów = cena tego modelu.
 export type Wyjasnienie = {
   model: string
   start: number

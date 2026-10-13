@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { InfoIcon } from "lucide-react"
+import { InfoIcon, TableIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -118,7 +118,7 @@ export function CechyDzialki({ cechy, naTle, cenaM2, przeliczona, onPrzelicz, on
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2.5">
-          <IkonaModulu kolor="ostrzezenie" />
+          <IkonaModulu kolor="ostrzezenie" ikona={TableIcon} />
           Cechy działki
         </CardTitle>
         <CardDescription className="pl-8.5">
@@ -173,11 +173,11 @@ export function CechyDzialki({ cechy, naTle, cenaM2, przeliczona, onPrzelicz, on
                     </TableCell>
                     <TableCell>
                       {doOdczytu ? (
-                        <span className="font-mono text-xs">{pokazWartosc(kod, wartosc)}</span>
+                        <span className="text-xs">{pokazWartosc(kod, wartosc)}</span>
                       ) : (
                         <Input
                           aria-label={opis.nazwa}
-                          className={cn("h-8 bg-card font-mono text-xs", zmieniona && "border-ostrzezenie")}
+                          className={cn("h-8 bg-card text-xs", zmieniona && "border-ostrzezenie")}
                           placeholder="brak"
                           value={wpisane[kod] ?? (wartosc === null ? "" : zaokraglij(wartosc as number))}
                           onChange={(e) => setWpisane({ ...wpisane, [kod]: e.target.value })}

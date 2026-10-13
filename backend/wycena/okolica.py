@@ -2,12 +2,10 @@ from psycopg import sql
 
 from etl.wczytanie_i_czyszczenie_cech.pozostale import PRZEZNACZENIA
 
-# Cechy, dla których ma sens pozycja na tle gminy. Bez flag 0/1, czasu i współrzędnych.
 BEZ_PERCENTYLA = {"rok", "miesiace_od_2015", "x_2180", "y_2180", "ma_wpis_przeznaczenia"}
 
 
 def transakcje_wokol(baza, parametry):
-    # Sprzedaże do mapy: te same, z których liczy się sąsiedztwo cenowe w 5 km.
     wiersze = baza.execute(
         """
         SELECT ST_X(ST_Transform(srodek, 4326)), ST_Y(ST_Transform(srodek, 4326)),
@@ -81,8 +79,6 @@ def historia_gminy(baza, parametry):
 
 
 def percentyle(baza, cechy, liczbowe):
-    # Jaka część sprzedanych działek w gminie ma mniejszą wartość cechy.
-    # W małej gminie porównujemy z całym powiatem.
     kody = []
     for kod in liczbowe:
         if kod in BEZ_PERCENTYLA or kod.startswith("przezn_") or kod.startswith("czy_"):
@@ -114,7 +110,6 @@ def percentyle(baza, cechy, liczbowe):
 
 
 def podpowiedz(baza, obreb):
-    # Najczęstsze przeznaczenie i rodzaj gruntu wśród sprzedaży w obrębie, a gdy ich brak — w gminie.
     gmina = obreb[:6] + obreb[7]
     for kolumna, teryt in [("teryt_obreb", obreb), ("teryt_gmina", gmina)]:
         warunek = sql.SQL("{} = %s").format(sql.Identifier(kolumna))

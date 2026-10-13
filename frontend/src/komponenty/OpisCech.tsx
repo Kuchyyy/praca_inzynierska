@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
-import { ArrowLeftIcon, SearchIcon } from "lucide-react"
+import { BookOpenIcon, SearchIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { KOLOR_GRUPY, TLO } from "@/lib/kolory"
-import { liczba, zaM2, zeZnakiem } from "@/lib/format"
+import { data, liczba, zaM2, zeZnakiem } from "@/lib/format"
 import { czyFlaga, pokazWartosc } from "@/lib/cechy"
 import { KROKI } from "@/dane/kroki"
 import { OPISY_CECH, ROZDZIALY } from "@/dane/opisyCech"
@@ -40,14 +39,13 @@ type Props = {
   wynik: WynikWyceny | null
   // Cecha, do której przewijamy po otwarciu, np. po kliknięciu ⓘ w tabeli cech.
   cel: string | null
-  onWroc: () => void
 }
 
 function przewin(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
-export function OpisCech({ model, wynik, cel, onWroc }: Props) {
+export function OpisCech({ model, wynik, cel }: Props) {
   const [szukane, setSzukane] = useState("")
 
   useEffect(() => {
@@ -126,7 +124,7 @@ export function OpisCech({ model, wynik, cel, onWroc }: Props) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2.5 text-xl">
-              <IkonaModulu kolor="akcja" />
+              <IkonaModulu kolor="akcja" ikona={BookOpenIcon} />
               Opis cech modelu
             </CardTitle>
             <CardDescription className="pl-8.5">
@@ -135,10 +133,6 @@ export function OpisCech({ model, wynik, cel, onWroc }: Props) {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-8">
-            <Button variant="outline" className="self-start" onClick={onWroc}>
-              <ArrowLeftIcon data-icon="inline-start" />
-              Wróć do wyceny
-            </Button>
             <RozdzialyOgolne model={model} />
           </CardContent>
         </Card>
@@ -184,7 +178,7 @@ function RozdzialyOgolne({ model }: { model: OpisModelu | null }) {
         <h2 className="text-lg font-semibold">Kroki wyceny</h2>
         <p className="text-sm">
           Serwer wyceny (backend/api.py) liczy dla wskazanej działki te same cechy co przygotowanie danych do treningu,
-          w sześciu krokach. Test zgodności (python -m model.sprawdz_cechy) porównuje oba sposoby na tysiącu transakcji.
+          w sześciu krokach.
         </p>
         <ol className="flex flex-col gap-2">
           {KROKI.map((k) => (
@@ -206,8 +200,8 @@ function RozdzialyOgolne({ model }: { model: OpisModelu | null }) {
         {model ? (
           <>
             <p className="text-sm">
-              Modele uczą się na {liczba(model.uczenie.wiersze)} sprzedażach sprzed {model.uczenie.przed}, a sprawdzane są na{" "}
-              {liczba(model.test.wiersze)} sprzedażach od {model.test.od}. Ceny za m² spoza przedziału{" "}
+              Modele uczą się na {liczba(model.uczenie.wiersze)} sprzedażach sprzed {data(model.uczenie.przed)}, a sprawdzane są na{" "}
+              {liczba(model.test.wiersze)} sprzedażach od {data(model.test.od)}. Ceny za m² spoza przedziału{" "}
               {zaM2(model.progiCeny.dol)} – {zaM2(model.progiCeny.gora)} odrzucono jako błędy rejestru. Progi policzono
               tylko na treningu i tak samo zastosowano do testu (odrzucono {liczba(model.test.odrzucone)} sprzedaży testowych).
               Powiat i gmina są zamieniane na średnią ceny z treningu, pozostałe kategorie na kolumny 0/1, a braki liczb na
@@ -236,10 +230,10 @@ function RozdzialyOgolne({ model }: { model: OpisModelu | null }) {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{m.na_logarytmie ? "logarytmie ceny" : "cenie wprost"}</TableCell>
-                    <TableCell className="text-right font-mono">{liczba(m.mae, 1)}</TableCell>
-                    <TableCell className="text-right font-mono">{liczba(m.rmse, 1)}</TableCell>
-                    <TableCell className="text-right font-mono">{liczba(m.r2, 3)}</TableCell>
-                    <TableCell className="text-right font-mono">{liczba(m.mediana_bledu_procent, 1)}%</TableCell>
+                    <TableCell className="text-right">{liczba(m.mae, 1)}</TableCell>
+                    <TableCell className="text-right">{liczba(m.rmse, 1)}</TableCell>
+                    <TableCell className="text-right">{liczba(m.r2, 3)}</TableCell>
+                    <TableCell className="text-right">{liczba(m.mediana_bledu_procent, 1)}%</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -313,7 +307,7 @@ function SekcjaCechy({ opis, model, miejsca, wynik }: PropsSekcji) {
           <span className="font-mono text-xs text-muted-foreground">{opis.kod}</span>
         </div>
         {miejsceGlowne && (
-          <Badge variant="outline" className="font-mono">
+          <Badge variant="outline">
             ważność #{miejsceGlowne} z {OPISY_CECH.length}
           </Badge>
         )}
@@ -390,7 +384,7 @@ function TaDzialka({ opis, wynik, najlepszy }: { opis: OpisCechy; wynik: WynikWy
   return (
     <div className="flex flex-col gap-2 rounded-xs border-2 border-akcja p-3">
       <Etykieta>Ta działka</Etykieta>
-      <span className="font-mono text-lg font-medium">{pokazWartosc(opis.kod, wartosc ?? null)}</span>
+      <span className="text-lg font-medium">{pokazWartosc(opis.kod, wartosc ?? null)}</span>
       {percentyl !== undefined && percentyl !== null && (
         <span className="text-xs text-muted-foreground">
           wyżej niż {percentyl}% sprzedanych działek w {wynik.naTle.obszar === "gmina" ? "gminie" : "powiecie"}
@@ -424,8 +418,8 @@ function Statystyki({ opis, statystyka }: { opis: OpisCechy; statystyka: NonNull
             {statystyka.najczestsze.map((w) => (
               <TableRow key={w.wartosc}>
                 <TableCell className="max-w-36 truncate">{pokazWartosc(kod, w.wartosc)}</TableCell>
-                <TableCell className="text-right font-mono text-xs">{liczba(w.liczba)}</TableCell>
-                <TableCell className="text-right font-mono text-xs">{zaM2(w.mediana_ceny)}</TableCell>
+                <TableCell className="text-right text-xs">{liczba(w.liczba)}</TableCell>
+                <TableCell className="text-right text-xs">{zaM2(w.mediana_ceny)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -442,7 +436,7 @@ function Statystyki({ opis, statystyka }: { opis: OpisCechy; statystyka: NonNull
       <div className="flex flex-col gap-1">
         <Etykieta>Wartości w treningu</Etykieta>
         <span className="text-sm">
-          1 w <span className="font-mono">{liczba((statystyka.srednia ?? 0) * 100, 2)}%</span> transakcji
+          1 w <span>{liczba((statystyka.srednia ?? 0) * 100, 2)}%</span> transakcji
         </span>
         {statystyka.spearman !== null && statystyka.spearman !== undefined && (
           <span className="text-xs text-muted-foreground">Korelacja z ceną (Spearman): {liczba(statystyka.spearman, 3)}</span>
@@ -466,7 +460,7 @@ function Statystyki({ opis, statystyka }: { opis: OpisCechy; statystyka: NonNull
         {kwantyle.map(([nazwa, wartosc]) => (
           <div key={nazwa} className="flex flex-col rounded-xs bg-muted px-2 py-1">
             <span className="text-xs text-muted-foreground">{nazwa}</span>
-            <span className="truncate font-mono text-xs font-medium">
+            <span className="truncate text-xs font-medium">
               {wartosc === null || wartosc === undefined ? "—" : pokazWartosc(kod, wartosc)}
             </span>
           </div>
@@ -494,8 +488,8 @@ function WaznoscWModelach({ kod, model, miejsca }: { kod: string; model: OpisMod
             return (
               <TableRow key={m.nazwa}>
                 <TableCell className={cn("py-1.5", m.nazwa === model.najlepszy && "font-medium")}>{m.nazwa}</TableCell>
-                <TableCell className="py-1.5 text-right font-mono text-xs">#{miejsca[m.nazwa]?.[kod] ?? "—"}</TableCell>
-                <TableCell className="py-1.5 text-right font-mono text-xs">{zeZnakiem(wzrost)} zł/m²</TableCell>
+                <TableCell className="py-1.5 text-right text-xs">#{miejsca[m.nazwa]?.[kod] ?? "—"}</TableCell>
+                <TableCell className="py-1.5 text-right text-xs">{zeZnakiem(wzrost)} zł/m²</TableCell>
               </TableRow>
             )
           })}

@@ -21,13 +21,13 @@ export const KROKI: KrokProcesu[] = [
   {
     numer: 3,
     nazwa: "Cechy OSM",
-    opis: "27 cech otoczenia",
+    opis: "7 cech otoczenia",
     kolor: "ostrzezenie",
     podkroki: [
-      "Odległości do dróg, przystanków i węzłów",
-      "Zabudowa w promieniu 250, 500 i 1000 m",
-      "Las, woda, szkoły i sklepy",
-      "Miejscowości, miasta i granica państwa",
+      "Odległość do drogi i drogi utwardzonej",
+      "Najbliższy budynek i zabudowa w 1 km",
+      "Las w 500 m i usługi w 1 km",
+      "Odległość do miasta 50 tys.+",
     ],
   },
   {

@@ -1,72 +1,61 @@
-from datetime import date
+import runpy
 from pathlib import Path
 
 import config
-from etl.audyt_danych import audytuj_dane
-from etl.walidacja_modelu import przygotuj_dane_walidacyjne
-from etl.pozostale_cechy import przygotuj_pozostale
-from etl.cechy_osm.polska import policz_osm
-from etl.egib.paczki import uzupelnij_egib
-from etl.uldk.uzupelnij import pobierz_brakujace_granice, przelicz_po_uldk
+from db.pobierz_dane import pobierz_dane
+from db.import_postgis import importuj_dane
 from etl.wczytanie_i_czyszczenie_cech.wczytywanie import oczysc_plik
-from model.trenuj import trenuj_modele
+from etl.uldk.uzupelnij import uzupelnij_uldk
+from etl.egib.paczki import uzupelnij_egib
+from etl.cechy_osm.polska import policz_osm
+from etl.pozostale_cechy import przygotuj_pozostale
 
-if __name__ == "__main__":
-    wejscie = Path(config.SCIEZKA_SUROWE)
-    oczyszczone = Path(config.SCIEZKA_OCZYSZCZONE)
-    po_uldk = Path(config.SCIEZKA_PO_ULDK)
-    data_do = date.fromisoformat(config.DATA_DO)
 
-    print("1. Czyszczenie transakcji RCN")
+print("1. Pobranie RCN i mapy OSM")
+pobierz_dane()
 
-    if oczyszczone.exists():
-        print(f"Korzystam z zapisanego wyniku: {oczyszczone}")
-    else:
-        oczysc_plik(
-            wejscie=wejscie,
-            wyjscie=oczyszczone,
-            data_do=data_do,
-            wielkosc_partii=config.WIELKOSC_PARTII,
-            wojewodztwo=config.WOJEWODZTWO,
-            limit_uldk=config.LIMIT_ULDK,
-        )
+print("\n2. Czyszczenie transakcji RCN")
+if Path(config.SCIEZKA_OCZYSZCZONE).exists():
+    print(f"Gotowe wcześniej: {config.SCIEZKA_OCZYSZCZONE}")
+else:
+    oczysc_plik(config.SCIEZKA_SUROWE, config.SCIEZKA_OCZYSZCZONE)
 
-    print()
-    print("2. Uzupelnienie granic i przeliczenie powierzchni")
+print("\n3. Brakujące granice działek z ULDK i paczek EGiB")
+if config.UZUPELNIJ_ULDK:
+    uzupelnij_uldk()
+if config.UZUPELNIJ_EGIB:
+    uzupelnij_egib()
 
-    # Teraz pobieranie juz dziala osobno. Nie startujemy drugiej kopii.
-    if config.UZUPELNIJ_EGIB:
-        uzupelnij_egib()
-    elif not config.UZUPELNIJ_ULDK:
-        print("Etap wylaczony w config.py. Podglad pobierania: python postep.py")
-    elif po_uldk.exists():
-        print(f"Wynik po ULDK juz istnieje: {po_uldk}")
-    else:
-        opis = pobierz_brakujace_granice()
+print("\n4. Ponowne czyszczenie z uzupełnionymi granicami")
+if Path(config.SCIEZKA_Z_GRANICAMI).exists():
+    print(f"Gotowe wcześniej: {config.SCIEZKA_Z_GRANICAMI}")
+else:
+    oczysc_plik(config.SCIEZKA_SUROWE, config.SCIEZKA_Z_GRANICAMI)
 
-        print()
-        print("3. Przeliczenie powierzchni i cen po ULDK")
+print("\n5. Cechy otoczenia z OSM")
+if Path(config.SCIEZKA_CECHY_OSM).exists():
+    print(f"Gotowe wcześniej: {config.SCIEZKA_CECHY_OSM}")
+else:
+    policz_osm()
 
-        przelicz_po_uldk(opis)
+print("\n6. Cechy działki i sąsiedztwo cenowe")
+if Path(config.SCIEZKA_PELNE_CECHY).exists():
+    print(f"Gotowe wcześniej: {config.SCIEZKA_PELNE_CECHY}")
+else:
+    przygotuj_pozostale()
 
-    print()
-    if config.LICZ_OSM:
-        print("4. Cechy otoczenia z OSM")
-        policz_osm()
+print("\n7. Import do bazy PostGIS")
+if config.IMPORTUJ_DO_BAZY:
+    importuj_dane()
 
-    if config.LICZ_POZOSTALE_CECHY:
-        print("5. Pozostale cechy i sasiedztwo cenowe Polski")
-        przygotuj_pozostale()
+print("\n8. Trening modeli i eksperymenty z cechami")
+if config.TRENUJ_MODELE:
+    runpy.run_path("modele.py")
+if config.WAZNOSC_CECH:
+    runpy.run_path("waznosc_cech.py")
+if config.SYMULACJA_CECH:
+    runpy.run_path("cechy.py")
+if config.WALIDACJA_KROCZACA:
+    runpy.run_path("walidacja_kroczaca_modele.py")
 
-    if config.AUDYTUJ_DANE:
-        print("6. Audyt danych i kontrakt wejsc modelu")
-        audytuj_dane()
-        print("7. Osobne sasiedztwo cenowe dla walidacji czasowej")
-        przygotuj_dane_walidacyjne()
-
-    if config.TRENUJ_MODELE:
-        print("8. Trening modeli do wyceny")
-        trenuj_modele()
-
-    print("Koniec wybranych etapow przygotowania danych.")
-    print("Serwer wyceny dla panelu: python api.py")
+print("\nKoniec. Serwer wyceny dla panelu: python api.py")

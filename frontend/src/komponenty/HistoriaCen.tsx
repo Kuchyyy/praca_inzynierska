@@ -1,3 +1,4 @@
+import { ChartLineIcon } from "lucide-react"
 import { Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts"
 
 import {
@@ -58,7 +59,7 @@ export function HistoriaCen({ gmina, historia, trend, cenaM2 }: Props) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2.5">
-          <IkonaModulu kolor="sukces" />
+          <IkonaModulu kolor="sukces" ikona={ChartLineIcon} />
           Historia cen okolicy
         </CardTitle>
         <CardDescription className="pl-8.5">
@@ -84,7 +85,7 @@ export function HistoriaCen({ gmina, historia, trend, cenaM2 }: Props) {
           <ChartContainer config={KONFIGURACJA} className="h-64 w-full">
             <ComposedChart data={punkty} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="miesiac" tickLine={false} axisLine={false} interval={5} className="font-mono" />
+              <XAxis dataKey="miesiac" tickLine={false} axisLine={false} interval={5} />
               <YAxis yAxisId="cena" domain={[0, Math.ceil(najwyzsza * 1.15)]} tickLine={false} axisLine={false} width={44} />
               <YAxis yAxisId="liczba" orientation="right" hide domain={[0, najwiecej * 3]} />
               <ChartTooltip content={<ChartTooltipContent />} />

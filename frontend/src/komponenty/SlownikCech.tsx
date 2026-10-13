@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ArrowRightIcon, SearchIcon } from "lucide-react"
+import { ArrowRightIcon, BookOpenIcon, SearchIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -60,7 +60,7 @@ export function SlownikCech({ wybrana, onWybierz, model, onPelnyOpis }: Props) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2.5">
-          <IkonaModulu kolor="akcja" />
+          <IkonaModulu kolor="akcja" ikona={BookOpenIcon} />
           Słownik cech
         </CardTitle>
         <CardDescription className="pl-8.5">Co oznacza cecha i skąd się bierze</CardDescription>
@@ -135,7 +135,7 @@ function Statystyka({ nazwa, wartosc }: { nazwa: string; wartosc: string }) {
   return (
     <div className="flex flex-col gap-0.5 rounded-sm border bg-card p-2">
       <span className="text-xs text-muted-foreground">{nazwa}</span>
-      <span className="font-mono text-xs font-medium">{wartosc}</span>
+      <span className="text-xs font-medium">{wartosc}</span>
     </div>
   )
 }
