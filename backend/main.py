@@ -2,13 +2,13 @@ import runpy
 from pathlib import Path
 
 import config
-from db.pobierz_dane import pobierz_dane
+from etl.etap1_pobranie.pobierz_dane import pobierz_dane
 from db.import_postgis import importuj_dane
-from etl.wczytanie_i_czyszczenie_cech.wczytywanie import oczysc_plik
-from etl.uldk.uzupelnij import uzupelnij_uldk
-from etl.egib.paczki import uzupelnij_egib
-from etl.cechy_osm.polska import policz_osm
-from etl.pozostale_cechy import przygotuj_pozostale
+from etl.etap2_4_czyszczenie.czyszczenie import oczysc
+from etl.etap3_granice.uldk import uzupelnij_uldk
+from etl.etap3_granice.egib import uzupelnij_egib
+from etl.etap5_osm.cechy_osm import policz_osm
+from etl.etap6_cechy.polacz_cechy import polacz_cechy
 
 
 print("1. Pobranie RCN i mapy OSM")
@@ -18,7 +18,7 @@ print("\n2. Czyszczenie transakcji RCN")
 if Path(config.SCIEZKA_OCZYSZCZONE).exists():
     print(f"Gotowe wcześniej: {config.SCIEZKA_OCZYSZCZONE}")
 else:
-    oczysc_plik(config.SCIEZKA_SUROWE, config.SCIEZKA_OCZYSZCZONE)
+    oczysc(config.SCIEZKA_SUROWE, config.SCIEZKA_OCZYSZCZONE)
 
 print("\n3. Brakujące granice działek z ULDK i paczek EGiB")
 if config.UZUPELNIJ_ULDK:
@@ -30,7 +30,7 @@ print("\n4. Ponowne czyszczenie z uzupełnionymi granicami")
 if Path(config.SCIEZKA_Z_GRANICAMI).exists():
     print(f"Gotowe wcześniej: {config.SCIEZKA_Z_GRANICAMI}")
 else:
-    oczysc_plik(config.SCIEZKA_SUROWE, config.SCIEZKA_Z_GRANICAMI)
+    oczysc(config.SCIEZKA_SUROWE, config.SCIEZKA_Z_GRANICAMI)
 
 print("\n5. Cechy otoczenia z OSM")
 if Path(config.SCIEZKA_CECHY_OSM).exists():
@@ -42,7 +42,7 @@ print("\n6. Cechy działki i sąsiedztwo cenowe")
 if Path(config.SCIEZKA_PELNE_CECHY).exists():
     print(f"Gotowe wcześniej: {config.SCIEZKA_PELNE_CECHY}")
 else:
-    przygotuj_pozostale()
+    polacz_cechy()
 
 print("\n7. Import do bazy PostGIS")
 if config.IMPORTUJ_DO_BAZY:
@@ -54,8 +54,8 @@ if config.TRENUJ_MODELE:
 if config.WAZNOSC_CECH:
     runpy.run_path("waznosc_cech.py")
 if config.SYMULACJA_CECH:
-    runpy.run_path("cechy.py")
+    runpy.run_path("eksperymenty_cech.py")
 if config.WALIDACJA_KROCZACA:
     runpy.run_path("walidacja_kroczaca_modele.py")
 
-print("\nKoniec. Serwer wyceny dla panelu: python api.py")
+print("\nKoniec. Serwer wyceny dla panelu")

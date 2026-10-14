@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, BookOpenIcon, DownloadIcon, HistoryIcon, LandPlotIcon, Trash2Icon } from "lucide-react"
+import { DownloadIcon, HistoryIcon, LandPlotIcon, Trash2Icon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -12,11 +12,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { data, kwota, zaM2 } from "@/lib/format"
 import type { WpisHistorii } from "@/lib/historia"
-import type { DaneDzialki, Etap, Widok } from "@/typy"
+import type { DaneDzialki, Etap } from "@/typy"
 
 type Props = {
   etap: Etap
-  widok: Widok
   dzialka: DaneDzialki | null
   historia: WpisHistorii[]
   onAnuluj: () => void
@@ -24,17 +23,12 @@ type Props = {
   onEksportuj: () => void
   onOtworz: (wpis: WpisHistorii) => void
   onWyczyscHistorie: () => void
-  onCechy: () => void
-  onWroc: () => void
 }
 
 export function Naglowek(props: Props) {
-  const { etap, widok, dzialka, onAnuluj, onPonownie, onEksportuj, onCechy, onWroc } = props
+  const { etap, dzialka, onAnuluj, onPonownie, onEksportuj } = props
 
-  let okruszek = etap === "dane" || !dzialka ? "Nowa wycena" : `Działka ${dzialka.identyfikator} · ${dzialka.gmina}`
-  if (widok === "cechy") {
-    okruszek = "Opis cech modelu"
-  }
+  const okruszek = etap === "dane" || !dzialka ? "Nowa wycena" : `Działka ${dzialka.identyfikator} · ${dzialka.gmina}`
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card px-5">
@@ -45,13 +39,6 @@ export function Naglowek(props: Props) {
       <span className="text-sm text-linia-mocna">/</span>
       <span className="flex-1 truncate text-sm text-muted-foreground">{okruszek}</span>
 
-      {widok === "cechy" ? (
-        <Button onClick={onWroc}>
-          <ArrowLeftIcon data-icon="inline-start" />
-          Wróć do wyceny
-        </Button>
-      ) : (
-        <>
           {etap !== "liczenie" && <HistoriaWycen {...props} />}
           {etap === "liczenie" && (
             <Button variant="outline" onClick={onAnuluj}>
@@ -67,12 +54,6 @@ export function Naglowek(props: Props) {
               <Button onClick={onPonownie}>Wyceń ponownie</Button>
             </>
           )}
-          <Button variant="outline" onClick={onCechy}>
-            <BookOpenIcon data-icon="inline-start" />
-            Cechy
-          </Button>
-        </>
-      )}
     </header>
   )
 }

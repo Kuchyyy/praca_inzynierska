@@ -12,7 +12,7 @@ import config
 from wycen_dzialke import opis, wycen
 from wycena.baza import polacz
 from wycena.cechy import ETAPY_OSM, ETAPY_SASIEDZTWA, cechy_formularza, cechy_granicy, parametry_sasiedztwa
-from wycena.okolica import historia_gminy, percentyle, podpowiedz, poprzednie_sprzedaze, transakcje_wokol
+from wycena.okolica import percentyle, podpowiedz, poprzednie_sprzedaze, transakcje_wokol
 
 app = FastAPI(title="Wycena działek")
 
@@ -126,7 +126,6 @@ def przebieg(dzialka):
             start = time.monotonic()
             yield wiersz({"krok": 6, "podkrok": 0})
             yield wiersz({"krok": 6, "podkrok": 1})
-            historia = historia_gminy(baza, parametry)
             transakcje = transakcje_wokol(baza, parametry)
             poprzednie = poprzednie_sprzedaze(baza, parametry)
             yield wiersz({"krok": 6, "podkrok": 2})
@@ -140,7 +139,6 @@ def przebieg(dzialka):
             "modele": modele,
             "wyjasnienia": wyjasnienia,
             "naTle": na_tle,
-            "historia": historia,
             "transakcje": transakcje,
             "poprzednie": poprzednie,
             "kroki": kroki,

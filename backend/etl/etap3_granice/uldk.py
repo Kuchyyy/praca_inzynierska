@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timezone
 
 import config
-from etl.uldk.granice import brakujace_dzialki, otworz_cache, pobierz_granice
+from etl.etap3_granice.granice import brakujace_dzialki, otworz_cache, pobierz_granice
 
 
 def uzupelnij_uldk():

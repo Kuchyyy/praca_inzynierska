@@ -111,18 +111,6 @@ export type Wyjasnienie = {
 export type WartoscCechy = number | string | null
 export type Cechy = Record<string, WartoscCechy>
 
-export type PunktHistorii = {
-  miesiac: string
-  mediana: number
-  liczba: number
-}
-
-export type HistoriaGminy = {
-  punkty: PunktHistorii[]
-  medianaTeraz: number | null
-  transakcje: number
-}
-
 export type Transakcja = {
   punkt: Punkt
   cenaM2: number
@@ -142,9 +130,6 @@ export type StatystykaCechy = {
   mediana: number | null
   braki_procent: number
   min?: number | null
-  p25?: number | null
-  p75?: number | null
-  p99?: number | null
   max?: number | null
   srednia?: number | null
   zera_procent?: number | null
@@ -184,7 +169,6 @@ export type WynikWyceny = {
   // Wkład cech osobno dla każdego modelu, w tej samej kolejności co modele.
   wyjasnienia: Wyjasnienie[]
   naTle: { obszar: "gmina" | "powiat"; percentyle: Record<string, number | null> }
-  historia: HistoriaGminy
   transakcje: Transakcja[]
   poprzednie: Sprzedaz[]
   kroki: WynikKroku[]
@@ -220,4 +204,3 @@ export type OpisCechy = {
   uwagi?: string
 }
 
-export type Widok = "wycena" | "cechy"

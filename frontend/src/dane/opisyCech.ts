@@ -63,9 +63,9 @@ const SASIEDZTWO_ZASADY = [
   "Tylko sprzedaże ze ściśle wcześniejszego dnia niż data wyceny. Transakcje z tego samego dnia się nie liczą.",
   "Wcześniejsze sprzedaże tej samej działki są pomijane, żeby model nie dostał jej własnej ceny.",
 ]
-const ETL_SASIEDZTWO = "etl/sasiedztwo_cenowe/polska.py · dodaj_sasiedztwo"
-const ETL_POZOSTALE = "etl/wczytanie_i_czyszczenie_cech/pozostale.py · dodaj_pozostale"
-const ETL_CZYSZCZENIE = "etl/wczytanie_i_czyszczenie_cech/czyszczenie.py · wyczysc_partie"
+const ETL_SASIEDZTWO = "etl/etap6_cechy/sasiedztwo.py · dodaj_sasiedztwo"
+const ETL_POZOSTALE = "etl/etap6_cechy/cechy_dzialki.py · dodaj_pozostale"
+const ETL_CZYSZCZENIE = "etl/etap2_4_czyszczenie/czyszczenie.py · oczysc"
 
 type Tresc = Omit<OpisCechy, "kod" | "nazwa" | "grupa" | "rozdzial" | "jednostka">
 
@@ -86,7 +86,7 @@ function odleglosc(kod: string, nazwa: string, warstwa: string, tagi: string, co
     ],
     wzor: "d = min odległość(środek działki, obiekt warstwy)",
     zrodlo: `${OSM} · metry`,
-    etl: "etl/cechy_osm/polska.py · odleglosci_do_geometrii (shapely STRtree)",
+    etl: "etl/etap5_osm/cechy_osm.py · odleglosci_do_geometrii (shapely STRtree)",
     panel: "backend/wycena/cechy.py · odleglosc (PostGIS ST_Distance)",
     uwagi: uwagi ?? UWAGA_OSM_CZAS,
   })
@@ -105,7 +105,7 @@ function wPromieniu(kod: string, nazwa: string, warstwa: string, tagi: string, p
     ],
     wzor: `n = liczba obiektów z (x − x₀)² + (y − y₀)² ≤ ${promien}²`,
     zrodlo: `${OSM} · liczba obiektów`,
-    etl: "etl/cechy_osm/polska.py · policz_osm (scipy cKDTree.query_ball_point)",
+    etl: "etl/etap5_osm/cechy_osm.py · policz_osm (scipy cKDTree.query_ball_point)",
     panel: "backend/wycena/cechy.py · liczba_w_promieniu (PostGIS)",
     uwagi: uwagi ?? UWAGA_OSM_CZAS,
   })
@@ -125,7 +125,7 @@ function udzialW500(kod: string, nazwa: string, warstwa: string, tagi: string, c
     ],
     wzor: "udział = pole(⋃ obszary ∩ koło 500 m) / pole(koła 500 m)",
     zrodlo: `${OSM} · od 0 do 1`,
-    etl: "etl/cechy_osm/polska.py · pokrycie (shapely buffer, union_all)",
+    etl: "etl/etap5_osm/cechy_osm.py · udzial_w_kole (shapely buffer, union_all)",
     panel: "backend/wycena/cechy.py · pokrycie (PostGIS ST_Buffer, ST_Union)",
     uwagi: UWAGA_OSM_CZAS,
   })
@@ -322,7 +322,7 @@ const POLOZENIE: OpisCechy[] = [
     poCo: "Pozwala modelom drzewiastym wydzielić obszary o podobnych cenach bez nazw miejscowości.",
     kroki: ["Granica działki przeliczona na EPSG:2180.", "Centroid granicy, współrzędna X w metrach."],
     zrodlo: "Granica z RCN, EGiB lub ULDK · metry",
-    etl: "etl/wczytanie_i_czyszczenie_cech/geometria.py · dodaj_geometrie",
+    etl: "etl/etap2_4_czyszczenie/geometria.py · dodaj_geometrie",
     panel: "backend/wycena/cechy.py · cechy_granicy (PostGIS ST_Centroid)",
   }),
   cecha("y_2180", "Współrzędna Y środka", "polozenie", "m", {
@@ -330,7 +330,7 @@ const POLOZENIE: OpisCechy[] = [
     poCo: "Razem ze współrzędną X opisuje położenie działki w kraju.",
     kroki: ["Granica działki przeliczona na EPSG:2180.", "Centroid granicy, współrzędna Y w metrach."],
     zrodlo: "Granica z RCN, EGiB lub ULDK · metry",
-    etl: "etl/wczytanie_i_czyszczenie_cech/geometria.py · dodaj_geometrie",
+    etl: "etl/etap2_4_czyszczenie/geometria.py · dodaj_geometrie",
     panel: "backend/wycena/cechy.py · cechy_granicy (PostGIS ST_Centroid)",
   }),
   cecha("powierzchnia_m2", "Powierzchnia", "polozenie", "m²", {
@@ -342,7 +342,7 @@ const POLOZENIE: OpisCechy[] = [
       "Przy wycenie: wartość z formularza, domyślnie pole z granicy ULDK. Można ją poprawić.",
     ],
     zrodlo: "Ewidencja i granica · m²",
-    etl: "etl/wczytanie_i_czyszczenie_cech/geometria.py · ustal_powierzchnie",
+    etl: "etl/etap2_4_czyszczenie/geometria.py · ustal_powierzchnie",
     panel: FORMULARZ_PRZY_WYCENIE,
     uwagi: "Poza zakresem 100–200 000 m² model nie miał przykładów i panel pokazuje ostrzeżenie.",
   }),

@@ -8,8 +8,8 @@ from urllib.request import urlopen
 import pyogrio
 
 import config
-from etl.uldk.granice import brakujace_dzialki, otworz_cache
-from etl.wczytanie_i_czyszczenie_cech.geometria import wczytaj_ksztalt
+from etl.etap3_granice.granice import brakujace_dzialki, otworz_cache
+from etl.etap2_4_czyszczenie.geometria import wczytaj_ksztalt
 
 ADRES = "https://opendata.geoportal.gov.pl/InneDane/latest_exports/eziudp_wfs/GPKG/"
 

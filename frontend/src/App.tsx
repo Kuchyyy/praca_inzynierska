@@ -9,25 +9,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { OPISY_CECH } from "@/dane/opisyCech"
 import { pobierzOpisModelu, podpowiedzObrebu, przeliczCechy, wycenDzialke } from "@/lib/api"
 import { zRysunku, zUldk } from "@/lib/dzialka"
 import { ograniczonyRuch } from "@/lib/animacja"
 import { pobierzRaport } from "@/lib/eksport"
 import { dopiszDoHistorii, wczytajHistorie, wyczyscHistorie, type WpisHistorii } from "@/lib/historia"
-import { dzialkaPoNumerze, dzialkaWPunkcie, obrebWPunkcie } from "@/lib/uldk"
+import { dzialkaWPunkcie, obrebWPunkcie } from "@/lib/uldk"
 import { srodek } from "@/lib/geometria"
-import { cn } from "@/lib/utils"
 import { CechyDzialki } from "@/komponenty/CechyDzialki"
 import { FormularzDanych } from "@/komponenty/FormularzDanych"
-import { HistoriaCen } from "@/komponenty/HistoriaCen"
 import { IkonaModulu } from "@/komponenty/IkonaModulu"
 import { Mapa } from "@/komponenty/Mapa"
 import { Naglowek } from "@/komponenty/Naglowek"
-import { OpisCech } from "@/komponenty/OpisCech"
 import { PorownanieModeli } from "@/komponenty/PorownanieModeli"
 import { Proces } from "@/komponenty/Proces"
-import { SlownikCech } from "@/komponenty/SlownikCech"
 import { WplywCech } from "@/komponenty/WplywCech"
 import { Wynik } from "@/komponenty/Wynik"
 import type {
@@ -40,7 +35,6 @@ import type {
   Postep,
   Przeliczenie,
   Punkt,
-  Widok,
   WynikWyceny,
 } from "@/typy"
 
@@ -53,9 +47,6 @@ const TEMPO_KROKU = 260
 
 export function App() {
   const [etap, setEtap] = useState<Etap>("dane")
-  // Opis cech to osobny widok tej samej strony. Wycena zostaje w pamięci pod spodem.
-  const [widok, setWidok] = useState<Widok>("wycena")
-  const [celCechy, setCelCechy] = useState<string | null>(null)
   const [opisModelu, setOpisModelu] = useState<OpisModelu | null>(null)
   const [dzialka, setDzialka] = useState<DaneDzialki | null>(null)
   const [podpowiedz, setPodpowiedz] = useState<Podpowiedz | null>(null)
@@ -65,14 +56,12 @@ export function App() {
   // Wynik trybu „co jeśli”. Pusty, dopóki nikt nie zmienił cech.
   const [przeliczenie, setPrzeliczenie] = useState<Przeliczenie | null>(null)
   const [rozwiniety, setRozwiniety] = useState(false)
-  const [wybranaCecha, setWybranaCecha] = useState(OPISY_CECH[0].kod)
   const [szukam, setSzukam] = useState(false)
   const [komunikat, setKomunikat] = useState("")
   const [historia, setHistoria] = useState<WpisHistorii[]>(wczytajHistorie)
   // Liczą zapytania, żeby spóźniona odpowiedź nie nadpisała nowszej.
   const numerZapytania = useRef(0)
   const numerWyceny = useRef(0)
-  const pozycjaWyceny = useRef(0)
   // Ustawione przez „Pomiń animację” albo systemowe „ogranicz ruch”: kroki bez czekania.
   const pomin = useRef(false)
 
@@ -132,16 +121,6 @@ export function App() {
         return znaleziona ? zUldk(znaleziona) : null
       },
       "W tym miejscu ewidencja nie ma działki. Przybliż mapę albo narysuj granicę."
-    )
-  }
-
-  function wyszukano(tekst: string) {
-    zapytajUldk(
-      async () => {
-        const znaleziona = await dzialkaPoNumerze(tekst)
-        return znaleziona ? zUldk(znaleziona) : null
-      },
-      `Nie znaleziono działki „${tekst.trim()}”. Wpisz nazwę obrębu i numer, np. Kokotów 43/1.`
     )
   }
 
@@ -212,7 +191,6 @@ export function App() {
 
   // Wycena z historii: te same dane działki, liczone od nowa obecnymi modelami.
   function otworzZHistorii(wpis: WpisHistorii) {
-    setWidok("wycena")
     setDzialka(wpis.dzialka)
     wycen(wpis.dzialka)
   }
@@ -231,26 +209,12 @@ export function App() {
     setPrzeliczenie(await przeliczCechy(cechy))
   }
 
-  // Otwiera opis cech, a gdy podano kod, przewija do tej cechy.
-  function otworzCechy(kod: string | null) {
-    pozycjaWyceny.current = window.scrollY
-    setCelCechy(kod)
-    setWidok("cechy")
-  }
-
-  // Powrót do wyceny w to samo miejsce strony.
-  function wrocDoWyceny() {
-    setWidok("wycena")
-    requestAnimationFrame(() => window.scrollTo({ top: pozycjaWyceny.current }))
-  }
-
   const biezaca = przeliczenie ?? wynik
 
   return (
     <div className="flex min-h-svh flex-col">
       <Naglowek
         etap={etap}
-        widok={widok}
         dzialka={dzialka}
         historia={historia}
         onAnuluj={anuluj}
@@ -258,17 +222,10 @@ export function App() {
         onEksportuj={() => dzialka && wynik && pobierzRaport(dzialka, wynik)}
         onOtworz={otworzZHistorii}
         onWyczyscHistorie={() => setHistoria(wyczyscHistorie())}
-        onCechy={() => otworzCechy(null)}
-        onWroc={wrocDoWyceny}
       />
 
       <main className="flex flex-col gap-4 p-5">
-        {widok === "cechy" && (
-          <OpisCech model={opisModelu} wynik={wynik} cel={celCechy} />
-        )}
-
-        {/* Ukrywamy zamiast usuwać, żeby powrót z opisu cech nie gubił zmian w tabeli cech. */}
-        <div className={cn("flex flex-col gap-4", widok === "cechy" && "hidden")}>
+        <div className="flex flex-col gap-4">
         {etap === "dane" && (
           <div className="flex items-start gap-4">
             {/* Mapa przyklejona pod nagłówkiem: zostaje na ekranie przy przewijaniu formularza. */}
@@ -276,7 +233,7 @@ export function App() {
               <CardHeader>
                 <CardTitle>1. Wskaż działkę</CardTitle>
                 <CardDescription>
-                  Kliknij działkę na mapie, wyszukaj ją po numerze albo narysuj jej granicę
+                  Kliknij działkę na mapie albo narysuj jej granicę
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
@@ -287,7 +244,6 @@ export function App() {
                     szukam,
                     komunikat,
                     onKlik: kliknietoMape,
-                    onSzukaj: wyszukano,
                     onNarysowano: narysowano,
                   }}
                   className="flex-1"
@@ -361,24 +317,9 @@ export function App() {
                 cenaM2={wynik.wycena.cenaM2}
                 przeliczona={przeliczenie?.wycena.cenaM2 ?? null}
                 onPrzelicz={przelicz}
-                onWybierzCeche={otworzCechy}
               />
             </div>
 
-            <div className="grid grid-cols-[1fr_440px] gap-4 animate-in fade-in slide-in-from-bottom-3 fill-mode-both delay-300 duration-500">
-              <HistoriaCen
-                gmina={dzialka.gmina}
-                historia={wynik.historia}
-                trend={wynik.cechy.trend_cen_gmina_12m as number | null}
-                cenaM2={biezaca.wycena.cenaM2}
-              />
-              <SlownikCech
-                wybrana={wybranaCecha}
-                onWybierz={setWybranaCecha}
-                model={opisModelu}
-                onPelnyOpis={otworzCechy}
-              />
-            </div>
           </>
         )}
         </div>

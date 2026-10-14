@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { InfoIcon, TableIcon } from "lucide-react"
+import { TableIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -43,10 +43,9 @@ type Props = {
   // Wycena po zmianie cech albo null, gdy pokazujemy wycenę na wyliczonych cechach.
   przeliczona: number | null
   onPrzelicz: (cechy: Cechy | null) => Promise<void>
-  onWybierzCeche: (kod: string) => void
 }
 
-export function CechyDzialki({ cechy, naTle, cenaM2, przeliczona, onPrzelicz, onWybierzCeche }: Props) {
+export function CechyDzialki({ cechy, naTle, cenaM2, przeliczona, onPrzelicz }: Props) {
   const [grupa, setGrupa] = useState("wszystkie")
   // Wpisane wartości trzymamy jako tekst, żeby dało się wpisać np. „0,”.
   const [wpisane, setWpisane] = useState<Record<string, string>>({})
@@ -148,7 +147,6 @@ export function CechyDzialki({ cechy, naTle, cenaM2, przeliczona, onPrzelicz, on
                 <TableHead className="px-0 text-xs text-pomocniczy">Cecha</TableHead>
                 <TableHead className="w-32 text-xs text-pomocniczy">Wartość</TableHead>
                 <TableHead className="w-32 text-xs text-pomocniczy">Na tle {naTle.obszar === "gmina" ? "gminy" : "powiatu"}</TableHead>
-                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -199,16 +197,6 @@ export function CechyDzialki({ cechy, naTle, cenaM2, przeliczona, onPrzelicz, on
                           <span className="text-xs text-muted-foreground">wyżej niż {percentyl}%</span>
                         </div>
                       )}
-                    </TableCell>
-                    <TableCell className="px-0">
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        aria-label={`Opis cechy ${opis.nazwa}`}
-                        onClick={() => onWybierzCeche(kod)}
-                      >
-                        <InfoIcon />
-                      </Button>
                     </TableCell>
                   </TableRow>
                 )

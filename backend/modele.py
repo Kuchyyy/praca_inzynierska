@@ -23,8 +23,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 
 import config
-from etl.sasiedztwo_cenowe.polska import CECHY as CECHY_SASIEDZTWA
-from etl.wczytanie_i_czyszczenie_cech.pozostale import PRZEZNACZENIA
+from etl.etap6_cechy.sasiedztwo import CECHY as CECHY_SASIEDZTWA
+from etl.etap6_cechy.cechy_dzialki import PRZEZNACZENIA
 
 
 GRUPY = {

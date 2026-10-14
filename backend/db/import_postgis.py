@@ -78,7 +78,7 @@ def importuj_dane():
     for plik in sorted(Path(config.SCIEZKA_WARSTWY_OSM).glob("*.parquet")):
         pliki.append((plik, "osm_" + plik.stem))
 
-    with polacz(administrator=True) as baza:
+    with polacz(uzytkownik="postgres") as baza:
         for plik, nazwa in pliki:
             importuj_plik(baza, plik, nazwa)
 

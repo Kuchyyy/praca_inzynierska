@@ -1,11 +1,10 @@
 \set ON_ERROR_STOP on
-\getenv app_password APP_DB_PASSWORD
 \getenv database POSTGRES_DB
 \getenv administrator POSTGRES_USER
 
 CREATE EXTENSION IF NOT EXISTS postgis;
 
-CREATE ROLE dzialki_app LOGIN PASSWORD :'app_password';
+CREATE ROLE dzialki_app LOGIN;
 REVOKE ALL ON DATABASE :"database" FROM PUBLIC;
 GRANT CONNECT ON DATABASE :"database" TO dzialki_app;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

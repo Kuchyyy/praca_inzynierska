@@ -1,6 +1,6 @@
 from psycopg import sql
 
-from etl.wczytanie_i_czyszczenie_cech.pozostale import PRZEZNACZENIA
+from etl.etap6_cechy.cechy_dzialki import PRZEZNACZENIA
 
 BEZ_PERCENTYLA = {"rok", "miesiace_od_2015", "x_2180", "y_2180", "ma_wpis_przeznaczenia"}
 
@@ -45,37 +45,10 @@ def poprzednie_sprzedaze(baza, parametry):
         """,
         parametry,
     ).fetchall()
-    return [{"data": dzien.isoformat(), "cenaM2": cena, "cena": calosc} for dzien, cena, calosc in wiersze]
-
-
-def historia_gminy(baza, parametry):
-    miesiace = baza.execute(
-        """
-        SELECT to_char(date_trunc('month', dok_data), 'YYYY-MM'),
-               percentile_cont(0.5) WITHIN GROUP (ORDER BY cena_m2),
-               count(*)
-        FROM dane.transakcje
-        WHERE teryt_gmina = %(gmina)s
-          AND dok_data < %(dzien)s
-          AND dok_data >= date_trunc('month', %(dzien)s - interval '23 months')
-        GROUP BY 1
-        ORDER BY 1
-        """,
-        parametry,
-    ).fetchall()
-
-    mediana_teraz, wszystkie = baza.execute(
-        """
-        SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY cena_m2) FILTER (WHERE dok_data >= %(dzien)s - interval '12 months'),
-               count(*)
-        FROM dane.transakcje
-        WHERE teryt_gmina = %(gmina)s AND dok_data < %(dzien)s
-        """,
-        parametry,
-    ).fetchone()
-
-    punkty = [{"miesiac": miesiac, "mediana": mediana, "liczba": liczba} for miesiac, mediana, liczba in miesiace]
-    return {"punkty": punkty, "medianaTeraz": mediana_teraz, "transakcje": wszystkie}
+    sprzedaze = []
+    for dzien, cena, calosc in wiersze:
+        sprzedaze.append({"data": dzien.isoformat(), "cenaM2": cena, "cena": calosc})
+    return sprzedaze
 
 
 def percentyle(baza, cechy, liczbowe):
@@ -105,7 +78,10 @@ def percentyle(baza, cechy, liczbowe):
 
     wynik = {}
     for kod, udzial in zip(kody, wiersz):
-        wynik[kod] = None if udzial is None else round(float(udzial) * 100)
+        if udzial is None:
+            wynik[kod] = None
+        else:
+            wynik[kod] = round(float(udzial) * 100)
     return {"obszar": obszar, "percentyle": wynik}
 
 
@@ -144,13 +120,20 @@ def podpowiedz(baza, obreb):
             (teryt,),
         ).fetchone()
 
-        znane = [(kod, liczba) for kod, liczba in wpisy if kod in PRZEZNACZENIA]
-        if not znane:
+        znane = []
+        for kod, liczba in wpisy:
+            if kod in PRZEZNACZENIA:
+                znane.append((kod, liczba))
+        if len(znane) == 0:
             continue
+
+        obszar = "gmina"
+        if kolumna == "teryt_obreb":
+            obszar = "obreb"
 
         kod, liczba = znane[0]
         wynik = {
-            "obszar": "obreb" if kolumna == "teryt_obreb" else "gmina",
+            "obszar": obszar,
             "przeznaczenie": kod,
             "udzial": round(liczba / z_wpisem * 100),
             "liczbaSprzedazy": z_wpisem,

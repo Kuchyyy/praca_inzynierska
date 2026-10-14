@@ -71,22 +71,6 @@ export async function dzialkaWPunkcie(punkt: Punkt) {
   return dodajPomiary(zWiersza(wiersze[0]))
 }
 
-// Pełny identyfikator (121905_5.0013.43/1) albo nazwa obrębu z numerem (Kokotów 43/1).
-export async function dzialkaPoNumerze(tekst: string) {
-  const szukane = tekst.trim()
-  const pelnyIdentyfikator = /^\d{6}_\d\.\d{4}\.\S+$/.test(szukane)
-  const wiersze = await zapytaj({
-    request: pelnyIdentyfikator ? "GetParcelById" : "GetParcelByIdOrNr",
-    id: szukane,
-    result: POLA,
-    srid: "4326",
-  })
-  if (wiersze.length === 0) {
-    return null
-  }
-  return dodajPomiary(zWiersza(wiersze[0]))
-}
-
 // Dla narysowanej granicy bierzemy obręb, gminę i powiat z punktu w jej środku.
 export async function obrebWPunkcie(punkt: Punkt): Promise<ObrebUldk | null> {
   const wiersze = await zapytaj({

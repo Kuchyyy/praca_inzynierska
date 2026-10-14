@@ -9,14 +9,14 @@ Rejestru Cen Nieruchomości (RCN) i danych OpenStreetMap.
   Komendy uruchamiamy z katalogu `backend/`.
 - `frontend/` — panel wyceny (React, Tailwind, shadcn). Opis: [frontend/README.md](frontend/README.md).
 - `praca/` — dokumenty do pracy.
-- `docker-compose.yml` i `.env` — w katalogu głównym.
+- `docker-compose.yml` — w katalogu głównym. Baza działa lokalnie, bez haseł.
 
 ```text
 backend/
   main.py          kolejne etapy po kolei
   config.py        ścieżki, progi i przełączniki etapów
   modele.py        trening i ocena 5 modeli, zapis model.joblib (python modele.py)
-  cechy.py         osobny skrypt: eksperymenty z cechami z config.EKSPERYMENTY, tabela w terminalu (python cechy.py)
+  eksperymenty_cech.py osobny skrypt: eksperymenty z cechami z config.EKSPERYMENTY, tabela w terminalu (python eksperymenty_cech.py)
   wycen_dzialke.py wczytuje nauczone modele; funkcja wycen() wycenia jedną działkę dla panelu
   api.py           serwer wyceny (FastAPI) dla panelu
   wycena/          cechy działki liczone w PostGIS, historia cen, okolica
@@ -103,7 +103,7 @@ Wyniki na teście (transakcje od 01.01.2025, zł/m²):
 | Bayesian Ridge | 80,04 | 299,0 | 0,065 | 47,6% |
 | Linear Regression | 80,03 | 299,0 | 0,065 | 47,6% |
 
-Eksperymenty z cechami: `python cechy.py`. Lista jest w `config.py` (`EKSPERYMENTY`):
+Eksperymenty z cechami: `python eksperymenty_cech.py`. Lista jest w `config.py` (`EKSPERYMENTY`):
 nazwa eksperymentu i grupy albo pojedyncze cechy, które pomijamy. Skrypt uczy Gradient Boosting
 dla każdego eksperymentu i drukuje tabelę: liczba cech, MAE, zmiana MAE, mediana błędu.
 Model główny zawsze używa wszystkich cech.

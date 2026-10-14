@@ -11,7 +11,7 @@ dane/
   gotowe/         wyniki kolejnych etapów i model.joblib
 ```
 
-Źródła pobiera pierwszy etap `python main.py` (`db/pobierz_dane.py`):
+Źródła pobiera pierwszy etap `python main.py` (`etl/etap1_pobranie/pobierz_dane.py`):
 
 | Plik | Źródło |
 |---|---|

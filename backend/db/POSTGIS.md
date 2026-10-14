@@ -13,13 +13,9 @@ Obraz działa natywnie na ARM (Mac Apple Silicon) i amd64.
 Źródła: [obraz PostgreSQL](https://hub.docker.com/_/postgres),
 [repozytorium pakietów](https://www.postgresql.org/download/linux/debian/).
 
-Hasła są opcjonalne. Bez pliku `.env` nowa baza powstaje bez haseł
-(`POSTGRES_HOST_AUTH_METHOD=trust`) i przyjmuje połączenia tylko z tego komputera.
-Nikomu nie trzeba przekazywać haseł: każdy uruchamia własną bazę.
-Żeby nowa baza wymagała haseł, skopiuj `.env.example` do `.env`, wpisz hasła
-i ustaw `POSTGRES_HOST_AUTH_METHOD=scram-sha-256` przed pierwszym startem.
-`.env` jest pomijany w Git oraz w kontekście budowania obrazu ETL. Ustawienia
-haseł działają tylko przy tworzeniu bazy; istniejąca baza zachowuje swoje.
+Baza działa bez haseł (`POSTGRES_HOST_AUTH_METHOD: trust`) i przyjmuje połączenia
+tylko z tego komputera (port wystawiony na `127.0.0.1`). Nie ma pliku `.env`:
+ustawienia połączenia są w `backend/config.py` (`POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`).
 
 ## Połączenie
 
@@ -27,12 +23,11 @@ haseł działają tylko przy tworzeniu bazy; istniejąca baza zachowuje swoje.
 |---|---|
 | Host z komputera | `127.0.0.1` |
 | Host z backendu w tym samym Compose | `db` |
-| Port z komputera | `POSTGRES_PORT` z `.env`, domyślnie `5432` |
+| Port z komputera | `5432` |
 | Port wewnątrz Compose | `5432` |
-| Baza | `dzialki` (ustawienie `POSTGRES_DB`) |
+| Baza | `dzialki` |
 | Użytkownik backendu | `dzialki_app` |
-| Hasło backendu | `APP_DB_PASSWORD` z `.env`, bez pliku brak hasła |
-| Administrator | `POSTGRES_USER`, hasło `POSTGRES_PASSWORD` (opcjonalne) |
+| Administrator (import danych) | `postgres`, bez hasła |
 | Schemat tabel aplikacji | `dane` |
 
 Port jest dostępny tylko lokalnie. Backend powinien używać `dzialki_app`,
@@ -70,9 +65,7 @@ Dane są w nazwanym wolumenie `postgres_data` projektu Compose, poza obrazem.
 Zwykłe `docker compose down` zachowuje dane. Opcja `down -v` usuwa wolumen
 wraz z bazą — nie używaj jej do zwykłego restartu.
 
-Inicjalizacja SQL wykonuje się tylko przy pierwszym starcie z pustym
-wolumenem. Zmiana hasła w `.env` nie zmienia istniejącego hasła w PostgreSQL;
-w istniejącej bazie zmieniamy je przez `\password` w psql, potem w `.env`.
+Inicjalizacja SQL wykonuje się tylko przy pierwszym starcie z pustym wolumenem.
 
 Kopia bazy:
 

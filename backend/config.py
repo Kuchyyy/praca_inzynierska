@@ -33,6 +33,7 @@ POWIERZCHNIA_MAX = 200000
 TOLERANCJA_POLA_DOL = 0.80
 TOLERANCJA_POLA_GORA = 1.25
 
+# Kolumny czytane z RCN
 KOLUMNY_POTRZEBNE = [
     "teryt",
     "serwis_rcn",
@@ -68,11 +69,13 @@ CENA_M2_KWANTYL_GORA = 0.998
 WAZNOSC_PROBKA = 20000
 WAZNOSC_POWTORZENIA = 3
 
+# Baza działa lokalnie w Dockerze, bez haseł.
 POSTGRES_HOST = "127.0.0.1"
-POSTGRES_ENV = "../.env"
+POSTGRES_PORT = 5432
+POSTGRES_DB = "dzialki"
 API_PORT = 8000
 
-# Eksperymenty z cechami, uruchamiane w modele.py, gdy SYMULACJA_CECH = False.
+# Eksperymenty z cechami: python eksperymenty_cech.py.
 # Nazwa eksperymentu: co pomijamy. Można podać grupę (transakcja, lokalizacja, polozenie,
 # czas, osm, przeznaczenie, sasiedztwo) albo pojedynczą cechę. Pusta lista = wszystkie cechy.
 EKSPERYMENTY = {

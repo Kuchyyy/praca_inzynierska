@@ -17,10 +17,9 @@ import {
   ValidateNotSelfIntersecting,
 } from "terra-draw"
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
-import { CheckIcon, PencilIcon, RotateCcwIcon, SearchIcon, XIcon } from "lucide-react"
+import { CheckIcon, PencilIcon, RotateCcwIcon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import { kolorCss } from "@/lib/kolory"
@@ -58,7 +57,6 @@ type Wybor = {
   szukam: boolean
   komunikat: string
   onKlik: (punkt: Punkt) => void
-  onSzukaj: (tekst: string) => void
   onNarysowano: (granica: Granica) => void
 }
 
@@ -92,7 +90,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
   const zamykaPrzycisk = useRef(false)
   const [uwaga, setUwaga] = useState("")
   const [gotowa, setGotowa] = useState(false)
-  const [szukane, setSzukane] = useState("")
   const [rysowanieStan, setRysowanieStan] = useState<Rysowanie>("brak")
   const [zoom, setZoom] = useState(14)
   const [bezMapy] = useState(() => !maWebGl2())
@@ -416,13 +413,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
     m.fitBounds(granice, { padding: 24, duration: 600 })
   }, [gotowa, granica, srodek, transakcje])
 
-  function szukaj(zdarzenie: React.FormEvent) {
-    zdarzenie.preventDefault()
-    if (szukane.trim()) {
-      wyborRef.current?.onSzukaj(szukane)
-    }
-  }
-
   return (
     <div className={cn("relative overflow-hidden rounded-sm border", className)}>
       {/* Styl inline, bo CSS MapLibre nadpisuje klasę „absolute” na „relative”. */}
@@ -431,16 +421,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
       {/* Pasek narzędzi przyklejony do górnej krawędzi mapy. */}
       {wybor && (
         <div className="absolute inset-x-0 top-0 flex items-center gap-2 border-b bg-card p-2">
-          <form onSubmit={szukaj} className="relative w-80">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={szukane}
-              onChange={(e) => setSzukane(e.target.value)}
-              placeholder="Numer działki, np. Kokotów 43/1"
-              className="pl-8"
-              disabled={rysowanieStan !== "brak"}
-            />
-          </form>
 
           <Button variant="outline" onClick={zacznijRysowanie} disabled={bezMapy}>
             {rysowanieStan === "brak" ? <PencilIcon data-icon="inline-start" /> : <RotateCcwIcon data-icon="inline-start" />}
@@ -492,7 +472,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
           )}
         >
           Ta przeglądarka nie obsługuje WebGL2, więc mapy nie da się wyświetlić.
-          {wybor ? " Działkę możesz wyszukać po numerze." : ""}
         </div>
       )}
 

@@ -5,7 +5,7 @@ from datetime import date
 
 from psycopg import sql
 
-from etl.wczytanie_i_czyszczenie_cech.pozostale import PRZEZNACZENIA
+from etl.etap6_cechy.cechy_dzialki import PRZEZNACZENIA
 
 TERYT_OBREBU = re.compile(r"^(\d{2})(\d{2})(\d{2})_([1-9])\.(\d{4})$")
 
@@ -38,8 +38,12 @@ def cechy_formularza(dzialka):
         "log_powierzchnia": math.log(powierzchnia),
     }
 
+    # W formularzu wybiera się jedno przeznaczenie: ta kolumna dostaje 1, pozostałe 0.
     for kategoria in PRZEZNACZENIA:
-        cechy["przezn_" + kategoria] = int(dzialka["przeznaczenie"] == kategoria)
+        if dzialka["przeznaczenie"] == kategoria:
+            cechy["przezn_" + kategoria] = 1
+        else:
+            cechy["przezn_" + kategoria] = 0
     cechy["przezn_brak_danych"] = 0
     cechy["ma_wpis_przeznaczenia"] = 1
     return cechy
@@ -58,11 +62,11 @@ def cechy_granicy(baza, dzialka):
     if not poprawna or pole <= 0:
         raise ValueError("Granica działki jest niepoprawna")
 
-    cechy = {
-        "x_2180": x,
-        "y_2180": y,
-        "wskaznik_zwartosci": 4 * math.pi * pole / obwod**2 if obwod > 0 else None,
-    }
+    zwartosc = None
+    if obwod > 0:
+        zwartosc = 4 * math.pi * pole / obwod**2
+
+    cechy = {"x_2180": x, "y_2180": y, "wskaznik_zwartosci": zwartosc}
     return cechy, pole
 
 
@@ -76,7 +80,9 @@ def odleglosc(baza, warstwa, punkt):
         """
     ).format(sql.Identifier("dane", "osm_" + warstwa))
     wiersz = baza.execute(zapytanie, punkt).fetchone()
-    return wiersz[0] if wiersz else None
+    if wiersz is None:
+        return None
+    return wiersz[0]
 
 
 def liczba_w_promieniu(baza, warstwa, punkt, promien):
@@ -133,7 +139,10 @@ def miasta(baza, punkt):
 
 
 def parametry_sasiedztwa(cechy, dzialka):
-    identyfikator = dzialka["identyfikator"] if dzialka["zrodloGranicy"] == "uldk" else None
+    # Narysowana granica nie ma numeru działki, więc nie ma też jej wcześniejszych sprzedaży.
+    identyfikator = None
+    if dzialka["zrodloGranicy"] == "uldk":
+        identyfikator = dzialka["identyfikator"]
     return {
         "x": cechy["x_2180"],
         "y": cechy["y_2180"],
@@ -183,7 +192,11 @@ def najblizsza_transakcja(baza, parametry):
         """,
         parametry,
     ).fetchone()
-    return {"odl_najblizsza_transakcja_m": wiersz[0] if wiersz else None}
+
+    odleglosc_do_transakcji = None
+    if wiersz is not None:
+        odleglosc_do_transakcji = wiersz[0]
+    return {"odl_najblizsza_transakcja_m": odleglosc_do_transakcji}
 
 
 def ceny_w_obszarze(baza, parametry):

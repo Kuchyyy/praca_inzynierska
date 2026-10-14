@@ -1,4 +1,4 @@
-import { MousePointerClickIcon, PencilIcon, SearchIcon, type LucideIcon } from "lucide-react"
+import { MousePointerClickIcon, PencilIcon, type LucideIcon } from "lucide-react"
 
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -56,10 +56,9 @@ const AUTOMATYCZNE: { kolor: Kolor; nazwa: string }[] = [
   { kolor: "model", nazwa: "Czas 2" },
 ]
 
-// Trzy sposoby wskazania działki, pokazywane zanim użytkownik wybierze pierwszą.
+// Dwa sposoby wskazania działki, pokazywane zanim użytkownik wybierze pierwszą.
 const SPOSOBY_WYBORU: { ikona: LucideIcon; tytul: string; opis: string }[] = [
   { ikona: MousePointerClickIcon, tytul: "Kliknij na mapie", opis: "Przybliż mapę, aż pojawią się granice działek, i kliknij wybraną." },
-  { ikona: SearchIcon, tytul: "Wyszukaj po numerze", opis: "Nazwa obrębu i numer, np. Kokotów 43/1, albo pełny identyfikator TERYT." },
   { ikona: PencilIcon, tytul: "Narysuj granicę", opis: "Gdy działki nie ma w ewidencji albo chcesz wycenić jej część." },
 ]
 
