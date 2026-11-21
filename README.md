@@ -8,25 +8,28 @@ Rejestru Cen Nieruchomości (RCN) i danych OpenStreetMap.
 - `backend/` — Python: przygotowanie danych, modele, baza PostGIS i serwer wyceny.
   Komendy uruchamiamy z katalogu `backend/`.
 - `frontend/` — panel wyceny (React, Tailwind, shadcn). Opis: [frontend/README.md](frontend/README.md).
-- `praca/` — dokumenty do pracy.
+- `praca/` — diagramy do pracy (architektura, przypadki użycia).
 - `docker-compose.yml` — w katalogu głównym. Baza działa lokalnie, bez haseł.
 
 ```text
 backend/
-  main.py          kolejne etapy po kolei
-  config.py        ścieżki, progi i przełączniki etapów
-  modele.py        trening i ocena 5 modeli, zapis model.joblib (python modele.py)
-  eksperymenty_cech.py osobny skrypt: eksperymenty z cechami z config.EKSPERYMENTY, tabela w terminalu (python eksperymenty_cech.py)
-  wycen_dzialke.py wczytuje nauczone modele; funkcja wycen() wycenia jedną działkę dla panelu
-  api.py           serwer wyceny (FastAPI) dla panelu
-  wycena/          cechy działki liczone w PostGIS, historia cen, okolica
-  etl/             czyszczenie RCN, granice ULDK/EGiB, cechy OSM, sąsiedztwo cenowe
-  db/              pobranie danych, import do PostGIS, Docker bazy
+  main.py                      kolejne etapy po kolei
+  config.py                    ścieżki, progi i przełączniki etapów
+  modele.py                    trening i ocena 5 modeli, zapis model.joblib
+  waznosc_cech.py              ważność cech, dopisywana do model.joblib
+  walidacja_kroczaca_modele.py walidacja krocząca na latach 2021–2024
+  eksperymenty_cech.py         eksperymenty z pomijaniem grup cech
+  wycen_dzialke.py             wczytuje nauczone modele; funkcja wycen() wycenia jedną działkę
+  api.py                       serwer wyceny (FastAPI) dla panelu
+  wycena/                      cechy działki liczone w PostGIS, historia cen, okolica
+  etl/                         czyszczenie RCN, granice ULDK/EGiB, cechy OSM, sąsiedztwo cenowe
+  db/                          import do PostGIS, Docker bazy, dane lokalne (poza Git)
 ```
 
 ## Uruchomienie
 
-Potrzebny Python 3.12.
+Potrzebny Python 3.12 i Node.js. Zapisany `model.joblib` był uczony w scikit-learn 1.8.0
+i inna wersja może go nie wczytać.
 
 ```bash
 cd backend
@@ -43,9 +46,10 @@ python main.py
 3. pobranie brakujących granic działek z ULDK i paczek EGiB (`UZUPELNIJ_ULDK`, `UZUPELNIJ_EGIB`),
 4. ponowne czyszczenie z uzupełnionymi granicami,
 5. 7 cech otoczenia z OSM,
-6. cechy działki, przeznaczenie i 8 cech sąsiedztwa cenowego,
+6. cechy działki, przeznaczenie i 7 cech sąsiedztwa cenowego,
 7. import do PostGIS (`IMPORTUJ_DO_BAZY`),
-8. trening modeli (`TRENUJ_MODELE`) i symulacja cech (`SYMULACJA_CECH`).
+8. trening modeli (`TRENUJ_MODELE`), ważność cech (`WAZNOSC_CECH`), eksperymenty z cechami
+   (`SYMULACJA_CECH`) i walidacja krocząca (`WALIDACJA_KROCZACA`).
 
 Etap, którego plik wynikowy już istnieje, jest pomijany. Żeby go przeliczyć,
 usuń jego plik. Etapy z przełącznikiem w `config.py` uruchamiamy ręcznie,
@@ -53,6 +57,8 @@ bo pobierają dane z sieci, zapisują do bazy albo długo liczą.
 Granice z ULDK i EGiB trafiają do `db/dane/posrednie/uldk_granice.sqlite`,
 więc przerwane pobieranie wznawia się od miejsca przerwania.
 Nie uruchamiaj dwóch pobierań naraz.
+
+Pojedynczy etap z podkatalogu uruchamiamy jako moduł, np. `python -m db.import_postgis`.
 
 ## Zasady czyszczenia
 
@@ -65,20 +71,28 @@ Nie uruchamiaj dwóch pobierań naraz.
   Brak granicy albo rozbieżność daje pustą powierzchnię i `do_modelu = false`.
 - Do modelu trafiają działki 100–200 000 m² z poprawną ceną za m².
 
-## Baza PostGIS i panel
+## Baza PostGIS, serwer i panel
 
 ```bash
 docker compose up -d --build --wait db     # z katalogu głównego
+
 cd backend
 python api.py                              # http://127.0.0.1:8000
+
+cd frontend                                # w drugim terminalu
+npm install
+npm run dev                                # http://localhost:5173
 ```
 
 Opis bazy i połączenia: [backend/db/POSTGIS.md](backend/db/POSTGIS.md).
-Serwer liczy dla wskazanej działki te same 54 cechy co ETL, ale zapytaniami do PostGIS:
-dane z formularza, granica, 7 cech OSM, 8 cech sąsiedztwa cenowego (tylko sprzedaże
+Serwer liczy dla wskazanej działki te same 51 cech co ETL, ale zapytaniami do PostGIS:
+dane z formularza, granica, 7 cech OSM, 7 cech sąsiedztwa cenowego (tylko sprzedaże
 sprzed daty wyceny), potem predykcje pięciu modeli i przedział 80%.
 
 ## Modele
+
+Model dostaje 51 cech: transakcja (3), lokalizacja (2), położenie i kształt działki (4), czas (2),
+OSM (7), przeznaczenie (26) i sąsiedztwo cenowe (7).
 
 `modele.py` to zwykły skrypt od góry do dołu (`python modele.py` albo etap 8 w `main.py`). Działa w dwóch krokach:
 
@@ -92,37 +106,38 @@ cechy nowej działki nauczonym modelom (`predict`) dla serwera wyceny.
 
 - Progi ceny za m² (0,1% i 99,8%) liczone są tylko na treningu i tak samo stosowane do walidacji i testu.
 - Jedno przygotowanie danych dla wszystkich modeli (`fit_transform` na części uczącej, `transform` na reszcie):
-  powiat i gmina kodowane średnią log-ceny (`TargetEncoder`),
-  pozostałe kategorie jako 0/1, liczby z medianą i wskaźnikiem braku.
-- Regresje i drzewo uczą się na logarytmie ceny (`log_models`), las i boosting na cenie wprost.
-  Wynik modeli na logarytmie jest obcinany do progów ceny. Bez tego regresja liniowa dawała
-  w walidacji kroczącej wyceny rzędu 10^21 zł/m², bo mediany cen z okolicy zawierają czasem błędne ceny z RCN.
+  liczby z medianą w miejsce braków, wskaźnikiem braku i skalowaniem, kategorie (w tym województwo i powiat) jako kolumny 0/1.
+- Wszystkie modele uczą się na logarytmie ceny, a wynik jest obcinany do progów ceny z treningu.
+  Bez tego regresja liniowa dawała czasem wyceny rzędu 10^21 zł/m², bo mediany cen z okolicy
+  zawierają pojedyncze błędne ceny z RCN.
 - Wkład cech w wycenę: regresje liniowo względem średniej działki, drzewa przez SHAP.
 - Ważność cech: wzrost MAE po przetasowaniu cechy na próbce testu (`python waznosc_cech.py`).
+
+Dane: 605 935 transakcji w treningu (w tym 84 407 z 2024 r. na walidację) i 124 516 w teście
+(429 odrzuconych przez progi ceny).
 
 Wyniki (zł/m²; walidacja: sprzedaże z 2024 r., test: od 01.01.2025):
 
 | Model | MAE walidacja | MAE test | RMSE test | R² test | Mediana błędu względnego |
 |---|---:|---:|---:|---:|---:|
-| Gradient Boosting | 63,88 | 65,28 | 240,7 | 0,394 | 36,1% |
-| Random Forest | 69,49 | 69,90 | 233,0 | 0,432 | 41,6% |
-| Decision Tree | 72,78 | 74,12 | 262,1 | 0,281 | 41,7% |
-| Linear Regression | 79,65 | 79,35 | 275,0 | 0,209 | 47,6% |
-| Bayesian Ridge | 79,65 | 79,35 | 275,0 | 0,209 | 47,6% |
+| Gradient Boosting | 63,15 | 64,44 | 241,2 | 0,391 | 35,4% |
+| Random Forest | 67,72 | 68,78 | 256,7 | 0,311 | 38,2% |
+| Decision Tree | 72,84 | 74,07 | 262,4 | 0,280 | 41,8% |
+| Bayesian Ridge | 82,54 | 81,82 | 287,1 | 0,138 | 48,2% |
+| Linear Regression | 82,65 | 81,87 | 287,1 | 0,138 | 48,2% |
 
 Na walidacji wygrywa Gradient Boosting i to on daje wycenę w panelu. Przedział 80% ustalony
-na walidacji obejmuje na teście 79,8% prawdziwych cen (od 78,2% przy braku transakcji w 2 km do 81,4% przy 30+).
+na walidacji obejmuje na teście 79,6% prawdziwych cen:
 
-Walidacja krocząca (`python walidacja_kroczaca_modele.py`): uczenie na latach wcześniejszych, ocena na kolejnym roku,
-cechy sąsiedztwa liczone od nowa dla każdego roku. MAE w zł/m²:
+| Transakcji w 2 km (24 mies.) | Transakcji w teście | Pokrycie |
+|---|---:|---:|
+| 0 | 5 621 | 77,3% |
+| 1–9 | 55 917 | 79,5% |
+| 10–29 | 46 541 | 79,6% |
+| 30+ | 16 437 | 80,6% |
 
-| Model | 2021 | 2022 | 2023 | 2024 | Średnia |
-|---|---:|---:|---:|---:|---:|
-| Gradient Boosting | 46,92 | 49,02 | 57,90 | 65,39 | 54,81 |
-| Random Forest | 47,77 | 51,03 | 61,98 | 69,32 | 57,52 |
-| Decision Tree | 53,57 | 55,48 | 65,42 | 74,28 | 62,19 |
-| Linear Regression | 55,60 | 58,47 | 75,19 | 80,74 | 67,50 |
-| Bayesian Ridge | 55,61 | 58,46 | 75,19 | 80,75 | 67,50 |
+Walidacja krocząca (`python walidacja_kroczaca_modele.py`): uczenie na latach wcześniejszych, ocena na kolejnym
+roku (2021–2024), cechy sąsiedztwa liczone od nowa dla każdego roku. Wynik to tabela MAE w terminalu.
 
 Eksperymenty z cechami: `python eksperymenty_cech.py`. Lista jest w `config.py` (`EKSPERYMENTY`):
 nazwa eksperymentu i grupy albo pojedyncze cechy, które pomijamy. Skrypt uczy Gradient Boosting
@@ -134,18 +149,8 @@ Model główny zawsze używa wszystkich cech.
 Na początku było 27 cech z OpenStreetMap. Ważność cech pokazała, że liczą się głównie
 odległość do budynku, odległość do drogi i liczba usług w 1 km, a reszta się dublowała
 (budynki w 250/500/1000 m, kilka rodzajów miast i dróg) albo prawie nic nie wnosiła
-(szkoła, autostrada, przystanek, woda, odległość do Wrocławia z etapu z samym Dolnym Śląskiem).
+(szkoła, autostrada, przystanek, woda).
 Zostało 7 cech, każda odpowiada na inne pytanie: zabudowa obok, gęstość zabudowy, dojazd,
 droga utwardzona, usługi, las, odległość do miasta 50 tys.+.
-
-Gradient Boosting na tym samym podziale (zł/m²):
-
-| Wariant | Cech | MAE | R² | Mediana błędu |
-|---|---:|---:|---:|---:|
-| 27 cech OSM | 74 | 64,91 | 0,391 | 35,9% |
-| 7 cech OSM | 54 | 65,41 | 0,387 | 36,1% |
-| bez OSM | 47 | 67,54 | 0,365 | 37,9% |
-
-Siedem cech zachowuje ok. 80% zysku z OSM przy czwartej części cech.
 
 Modele wyceniają ceny transakcyjne z RCN, a nie ceny ofertowe z ogłoszeń.

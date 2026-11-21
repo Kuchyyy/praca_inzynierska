@@ -7,10 +7,10 @@ Jedna strona w trzech stanach, jak w Figmie:
 2. **Liczenie** — proces krok po kroku na płótnie, bez wyników. Postęp i czasy kroków
    przychodzą na żywo z backendu.
 3. **Wynik** — proces zwinięty w pasek, pod nim mapa z transakcjami z okolicy, cena
-   z przedziałem 80%, porównanie pięciu modeli, wpływ cech, tabela wszystkich 74 cech
+   z przedziałem 80%, porównanie pięciu modeli, wpływ cech, tabela wszystkich 51 cech
    z trybem „co jeśli”, historia cen w gminie i słownik cech.
 
-Przycisk „Cechy” w nagłówku przełącza stronę na opis wszystkich 74 cech: co oznaczają,
+Przycisk „Cechy” w nagłówku przełącza stronę na opis wszystkich 51 cech: co oznaczają,
 jak są liczone, gdzie powstają w kodzie, statystyki z treningu, ważność w każdym modelu
 i, po wycenie, wartość oraz wkład dla działki. Powrót nie gubi wyceny ani zmian w tabeli cech.
 
@@ -52,13 +52,13 @@ npm run build
 - `src/App.tsx` — stan strony, wycena przez API i tryb „co jeśli”.
 - `src/lib/api.ts` — zapytania do serwera wyceny (wycena strumieniowa, przeliczenie, podpowiedź).
 - `src/lib/historia.ts` — „Historia wycen”: ostatnie wyceny zapisane w przeglądarce.
-- `src/lib/eksport.ts` — „Eksportuj CSV”: raport wyceny dla Excela (wynik, modele, 74 cechy i ich wkład).
+- `src/lib/eksport.ts` — „Eksportuj CSV”: raport wyceny dla Excela (wynik, modele, 51 cech i ich wkład).
 - `src/lib/ewidencja.ts` — granice i numery działek z WMS GUGiK, przerysowane w przeglądarce na wyraźniejsze (granice od zoomu 15, numery od 17).
 - `src/lib/animacja.ts` — licznik kwot i wykrywanie systemowego „ogranicz ruch”. Tempo odtwarzania procesu: `TEMPO_PODKROKU` i `TEMPO_KROKU` w `src/App.tsx`.
 - `src/komponenty/` — moduły panelu (formularz, proces, mapa, wynik, cechy, słownik…).
 - `src/dane/slowniki.ts` — opcje formularza z kodami RCN.
 - `src/dane/kroki.ts` — opisy sześciu kroków wyceny, zgodne z `backend/api.py`.
-- `src/dane/opisyCech.ts` — opisy 74 cech: co to, po co, kroki liczenia, wzór, plik i funkcja, ograniczenia.
+- `src/dane/opisyCech.ts` — opisy 51 cech: co to, po co, kroki liczenia, wzór, plik i funkcja, ograniczenia.
 - `src/komponenty/OpisCech.tsx` — widok „Opis cech” ze spisem treści i statystykami z `GET /api/model`.
 - `src/typy.ts` — typy danych zwracanych przez backend.
 - `src/components/ui/` — komponenty shadcn (Base UI), dopasowane do motywu.
