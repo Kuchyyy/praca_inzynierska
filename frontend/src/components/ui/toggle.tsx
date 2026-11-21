@@ -11,7 +11,6 @@ const toggleVariants = cva(
       variant: {
         default: "bg-transparent",
         outline: "border border-input bg-transparent hover:bg-muted",
-        // Wybrana opcja: czarne tło i biały tekst, jak w Figmie.
         wybor:
           "border border-input bg-card aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground",
       },

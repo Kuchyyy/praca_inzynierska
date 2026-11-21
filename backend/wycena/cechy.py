@@ -38,7 +38,6 @@ def cechy_formularza(dzialka):
         "log_powierzchnia": math.log(powierzchnia),
     }
 
-    # W formularzu wybiera się jedno przeznaczenie: ta kolumna dostaje 1, pozostałe 0.
     for kategoria in PRZEZNACZENIA:
         if dzialka["przeznaczenie"] == kategoria:
             cechy["przezn_" + kategoria] = 1
@@ -139,7 +138,6 @@ def miasta(baza, punkt):
 
 
 def parametry_sasiedztwa(cechy, dzialka):
-    # Narysowana granica nie ma numeru działki, więc nie ma też jej wcześniejszych sprzedaży.
     identyfikator = None
     if dzialka["zrodloGranicy"] == "uldk":
         identyfikator = dzialka["identyfikator"]
@@ -200,19 +198,14 @@ def najblizsza_transakcja(baza, parametry):
 
 
 def ceny_w_obszarze(baza, parametry):
-    mediana_gmina, ostatni_rok, poprzedni_rok = baza.execute(
+    mediana_gmina = baza.execute(
         """
-        SELECT
-            percentile_cont(0.5) WITHIN GROUP (ORDER BY cena_m2),
-            percentile_cont(0.5) WITHIN GROUP (ORDER BY cena_m2) FILTER (WHERE dok_data >= %(dzien)s - interval '12 months'),
-            percentile_cont(0.5) WITHIN GROUP (ORDER BY cena_m2) FILTER (
-                WHERE dok_data >= %(dzien)s - interval '24 months' AND dok_data < %(dzien)s - interval '12 months'
-            )
+        SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY cena_m2)
         FROM dane.transakcje
         WHERE teryt_gmina = %(gmina)s AND dok_data < %(dzien)s AND dzi_id_dzialki IS DISTINCT FROM %(dzialka)s
         """,
         parametry,
-    ).fetchone()
+    ).fetchone()[0]
 
     mediana_obreb = baza.execute(
         """
@@ -223,14 +216,9 @@ def ceny_w_obszarze(baza, parametry):
         parametry,
     ).fetchone()[0]
 
-    trend = None
-    if ostatni_rok is not None and poprzedni_rok is not None:
-        trend = ostatni_rok / poprzedni_rok - 1
-
     return {
         "mediana_cena_m2_obreb": mediana_obreb,
         "mediana_cena_m2_gmina": mediana_gmina,
-        "trend_cen_gmina_12m": trend,
     }
 
 

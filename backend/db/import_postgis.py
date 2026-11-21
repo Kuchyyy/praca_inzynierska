@@ -39,7 +39,6 @@ def importuj_plik(baza, plik, nazwa):
         tabela, sql.SQL(", ").join(sql.Identifier(n) for n in parquet.schema_arrow.names)
     )
 
-    # Cały import jednej tabeli w transakcji: po przerwaniu tabela nie zostaje w połowie.
     with baza.transaction():
         baza.execute(sql.SQL("CREATE TABLE {} ({})").format(tabela, sql.SQL(", ").join(kolumny)))
 

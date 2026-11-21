@@ -44,7 +44,6 @@ def wybierz_granice(gpkg, szukane):
                 if ksztalt is None:
                     continue
 
-                # Ta sama działka z dwiema różnymi granicami nie jest pewna, więc ją pomijamy.
                 if identyfikator in znalezione:
                     if not ksztalt.equals(wczytaj_ksztalt(znalezione[identyfikator])):
                         sprzeczne.add(identyfikator)

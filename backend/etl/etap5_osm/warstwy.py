@@ -13,7 +13,6 @@ import config
 
 WARSTWY = ["budynki", "drogi", "utwardzone", "las", "miasta_50k", "poi"]
 
-# Drogi, którymi nie da się dojechać samochodem, nie liczą się jako dojazd.
 NIE_DROGI = ["footway", "path", "steps", "track", "cycleway", "bridleway", "proposed", "construction", "platform"]
 NAWIERZCHNIE_UTWARDZONE = ["asphalt", "concrete", "paving_stones", "sett", "paved", "concrete:plates", "concrete:lanes"]
 
@@ -58,7 +57,6 @@ def przygotuj_warstwy():
 
     cel.parent.mkdir(parents=True, exist_ok=True)
 
-    # Mapa OSM jest w stopniach (EPSG:4326), a my liczymy w metrach (EPSG:2180).
     na_metry = Transformer.from_crs(4326, 2180, always_xy=True).transform
     fabryka = osmium.geom.WKBFactory()
     schemat = pa.schema([("id", pa.string()), ("geometry", pa.binary()), ("x", pa.float64()), ("y", pa.float64()), ("population", pa.float64())])
@@ -122,7 +120,6 @@ def przygotuj_warstwy():
             for warstwa in warstwy:
                 bufory[warstwa].append({"id": identyfikator, "geometry": geometria.wkb, "x": srodek.x, "y": srodek.y, "population": ludnosc})
 
-                # Zapisujemy po 5000 obiektów, żeby cała mapa Polski nie siedziała w pamięci.
                 if len(bufory[warstwa]) >= 5000:
                     pliki[warstwa].write_table(pa.Table.from_pylist(bufory[warstwa], schema=schemat))
                     bufory[warstwa] = []

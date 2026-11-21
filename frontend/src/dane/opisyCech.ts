@@ -1,6 +1,3 @@
-// Słownik cech modelu: szczegółowy opis każdej z 54 cech wariantu „formularz”.
-// Treść na podstawie praca/OPIS_CECH.md. Statystyki i ważność przychodzą z backendu (/api/model).
-
 import type { GrupaCechy, OpisCechy, RozdzialCech } from "@/typy"
 import { PRZEZNACZENIA } from "./slowniki"
 
@@ -73,7 +70,6 @@ function cecha(kod: string, nazwa: string, rozdzial: RozdzialCech, jednostka: st
   return { kod, nazwa, rozdzial, grupa: KOLOR_ROZDZIALU[rozdzial], jednostka, ...tresc }
 }
 
-// Odległość od środka działki do najbliższego obiektu warstwy OSM.
 function odleglosc(kod: string, nazwa: string, warstwa: string, tagi: string, coTo: string, poCo: string, uwagi?: string) {
   return cecha(kod, nazwa, "osm", "m", {
     coTo,
@@ -92,7 +88,6 @@ function odleglosc(kod: string, nazwa: string, warstwa: string, tagi: string, co
   })
 }
 
-// Liczba obiektów OSM, których środki leżą w promieniu od środka działki.
 function wPromieniu(kod: string, nazwa: string, warstwa: string, tagi: string, promien: number, coTo: string, poCo: string, uwagi?: string) {
   return cecha(kod, nazwa, "osm", "", {
     coTo,
@@ -111,7 +106,6 @@ function wPromieniu(kod: string, nazwa: string, warstwa: string, tagi: string, p
   })
 }
 
-// Udział koła 500 m wokół działki zajęty przez obszary warstwy.
 function udzialW500(kod: string, nazwa: string, warstwa: string, tagi: string, coTo: string, poCo: string) {
   return cecha(kod, nazwa, "osm", "", {
     coTo,
@@ -208,21 +202,6 @@ const SASIEDZTWO: OpisCechy[] = [
     zrodlo: `${RCN} · liczba`,
     etl: ETL_SASIEDZTWO,
     panel: "backend/wycena/cechy.py · ceny_w_promieniu",
-  }),
-  cecha("trend_cen_gmina_12m", "Trend cen w gminie", "sasiedztwo", "", {
-    coTo: "Jak zmieniła się mediana ceny w gminie w ostatnim roku względem roku wcześniejszego. 0,1 oznacza wzrost o 10%.",
-    poCo: "Kierunek rynku: czy ceny w okolicy rosną, czy spadają.",
-    kroki: [
-      ...SASIEDZTWO_ZASADY,
-      "Mediana cen w gminie z ostatnich 12 miesięcy przed datą wyceny.",
-      "Mediana z 12 miesięcy wcześniejszych (od 24 do 12 miesięcy przed wyceną).",
-      "Iloraz minus 1. Wymaga co najmniej jednej sprzedaży w każdym z okien.",
-    ],
-    wzor: "trend = mediana(ostatnie 12 mies.) / mediana(12 mies. wcześniej) − 1",
-    zrodlo: `${RCN} · ułamek`,
-    etl: ETL_SASIEDZTWO,
-    panel: "backend/wycena/cechy.py · ceny_w_obszarze",
-    uwagi: "Niestabilny w małych gminach: kilka sprzedaży potrafi zmienić go o kilkadziesiąt procent.",
   }),
   cecha("odl_najblizsza_transakcja_m", "Odległość do transakcji", "sasiedztwo", "m", {
     coTo: "Odległość od środka działki do środka najbliższej wcześniejszej sprzedaży, bez limitu czasu i promienia.",
@@ -477,7 +456,5 @@ export function opisCechy(kod: string): OpisCechy {
   return cecha(kod, kod, "polozenie", "", { coTo: "Cecha modelu.", poCo: "", kroki: [], zrodlo: "—", etl: "—", panel: "—" })
 }
 
-// Cechy z listą wartości zamiast liczby oraz cechy wyliczane z innych.
-// Tych nie da się zmienić w trybie „co jeśli”; logarytm backend liczy z powierzchni.
 export const KATEGORIE = ["tran_sprzedajacy", "nier_prawo", "dzi_sposob_uzyt", "teryt_woj", "teryt_powiat", "teryt_gmina"]
 export const TYLKO_DO_ODCZYTU = [...KATEGORIE, "log_powierzchnia"]

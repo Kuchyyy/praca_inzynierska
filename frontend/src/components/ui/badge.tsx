@@ -12,7 +12,6 @@ const badgeVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
         destructive: "bg-destructive text-white",
-        // Pełne kolory z palety panelu, biały tekst.
         akcja: "bg-akcja text-white",
         sukces: "bg-sukces text-white",
         spadek: "bg-spadek text-white",

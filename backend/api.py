@@ -50,10 +50,6 @@ def uwagi(cechy, wycena, modele, dzialka, pole, poprzednie):
     liczba_2km = cechy["liczba_transakcji_2km_24m"]
     lista.append({"tekst": f"{liczba_2km} transakcji w 2 km z ostatnich 24 mies.", "dobrze": liczba_2km >= 10})
 
-    trend = cechy["trend_cen_gmina_12m"]
-    if trend is not None:
-        lista.append({"tekst": f"Trend cen w gminie: {liczba(trend * 100, 1)}% r/r", "dobrze": True})
-
     najlepsze = sorted(modele, key=lambda m: m["mae"])[:3]
     ceny = [m["cenaM2"] for m in najlepsze]
     rozrzut = (max(ceny) - min(ceny)) / wycena["cenaM2"] * 100
@@ -167,7 +163,6 @@ def opis_modelu():
         "przedzialy": opis["przedzialy"],
         "waznosc": opis["waznosc"],
         "statystyki": opis["statystyki"],
-        "bledyGruntow": opis["bledy_gruntow"],
         "uczenie": opis["uczenie"],
         "test": opis["test"],
         "progiCeny": opis["progi_ceny"],

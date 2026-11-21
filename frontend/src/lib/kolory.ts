@@ -1,6 +1,5 @@
 import type { GrupaCechy, Kolor } from "@/typy"
 
-// Pełne nazwy klas, żeby Tailwind je znalazł podczas budowania.
 export const TLO: Record<Kolor, string> = {
   akcja: "bg-akcja",
   sukces: "bg-sukces",
@@ -31,12 +30,10 @@ export const TEKST: Record<Kolor, string> = {
   wynik: "text-wynik",
 }
 
-// Kolor z CSS, np. dla warstw mapy, które nie znają klas Tailwind.
 export function kolorCss(nazwa: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(`--${nazwa}`).trim()
 }
 
-// Każda grupa cech ma swój kolor, ten sam w tabeli, słowniku i formularzu.
 export const KOLOR_GRUPY: Record<GrupaCechy, Kolor> = {
   sasiedztwo: "rynek",
   osm: "ostrzezenie",

@@ -1,5 +1,3 @@
-// Opcje formularza. Wartości to kody z RCN, tak jak w cechy_modelu.json.
-
 export const RODZAJE_GRUNTU = [
   { kod: "gruntyRolne", nazwa: "Grunty rolne" },
   { kod: "gruntyZabudowaneIZurbanizowane", nazwa: "Grunty zabudowane i zurbanizowane" },
@@ -8,7 +6,6 @@ export const RODZAJE_GRUNTU = [
   { kod: "inne", nazwa: "Inne" },
 ]
 
-// Pozostałe dwie kategorie RCN dotyczą budynków i lokali, a to poniżej 1% transakcji.
 export const PRAWA = [
   { kod: "wlasnoscNieruchomosciGruntowej", nazwa: "Własność" },
   { kod: "uzytkowanieWieczyste", nazwa: "Użytkowanie wieczyste" },
@@ -21,7 +18,6 @@ export const SPRZEDAJACY = [
   { kod: "skarbPanstwa", nazwa: "Skarb Państwa" },
 ]
 
-// 24 kategorie przeznaczenia z RCN, pogrupowane tak, żeby łatwo było wybrać.
 export const PRZEZNACZENIA = [
   {
     grupa: "Zabudowa mieszkaniowa",
@@ -79,7 +75,6 @@ export const PRZEZNACZENIA = [
   },
 ]
 
-// Szukamy nazwy po kodzie, np. do podpowiedzi i podsumowania.
 export function nazwaOpcji(lista: { kod: string; nazwa: string }[], kod: string) {
   const opcja = lista.find((o) => o.kod === kod)
   return opcja ? opcja.nazwa : kod

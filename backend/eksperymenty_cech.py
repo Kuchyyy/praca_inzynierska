@@ -8,8 +8,6 @@ from sklearn.pipeline import make_pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import TargetEncoder
-from sklearn.model_selection import KFold
 
 from sklearn.metrics import mean_absolute_error
 
@@ -20,8 +18,8 @@ from etl.etap6_cechy.cechy_dzialki import PRZEZNACZENIA
 
 GRUPY = {
     "transakcja": ["tran_sprzedajacy", "nier_prawo", "dzi_sposob_uzyt"],
-    "lokalizacja": ["teryt_woj", "teryt_powiat", "teryt_gmina"],
-    "polozenie": ["x_2180", "y_2180", "powierzchnia_m2", "log_powierzchnia", "wskaznik_zwartosci"],
+    "lokalizacja": ["teryt_woj", "teryt_powiat"],
+    "polozenie": ["x_2180", "y_2180", "log_powierzchnia", "wskaznik_zwartosci"],
     "czas": ["rok", "miesiace_od_2015"],
     "osm": [
         "odl_najblizszy_budynek_m",
@@ -50,7 +48,6 @@ for cecha in KATEGORYCZNE:
 train = dane[dane["zbior"] == "trening"]
 test = dane[dane["zbior"] == "test"]
 
-# W RCN zostały pomyłki rzędu milionów zł/m². Progi liczymy tylko na treningu.
 dol = float(train["cena_m2"].quantile(config.CENA_M2_KWANTYL_DOL))
 gora = float(train["cena_m2"].quantile(config.CENA_M2_KWANTYL_GORA))
 
@@ -77,18 +74,16 @@ for nazwa, co_pominac in config.EKSPERYMENTY.items():
 
     cechy = [c for c in CECHY if c not in pominiete]
     liczby = [c for c in cechy if c not in KATEGORYCZNE]
-    kategorie = [c for c in cechy if c in KATEGORYCZNE and c not in ["teryt_powiat", "teryt_gmina"]]
-    teryt = [c for c in cechy if c in ["teryt_powiat", "teryt_gmina"]]
+    kategorie = [c for c in cechy if c in KATEGORYCZNE]
 
     preprocessing = ColumnTransformer(
         [
             ("liczby", make_pipeline(SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True), StandardScaler()), liczby),
             ("kategorie", make_pipeline(SimpleImputer(strategy="constant", fill_value="brak", keep_empty_features=True), OneHotEncoder(handle_unknown="ignore", sparse_output=False)), kategorie),
-            ("teryt", make_pipeline(SimpleImputer(strategy="constant", fill_value="brak", keep_empty_features=True), TargetEncoder(target_type="continuous", cv=KFold(5, shuffle=True, random_state=1))), teryt),
         ],
         sparse_threshold=0,
     )
-    X_train = preprocessing.fit_transform(train[cechy], np.log(y_train))
+    X_train = preprocessing.fit_transform(train[cechy])
     X_test = preprocessing.transform(test[cechy])
 
     model = HistGradientBoostingRegressor(
@@ -99,8 +94,8 @@ for nazwa, co_pominac in config.EKSPERYMENTY.items():
         min_samples_leaf=40,
         random_state=1,
     )
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+    model.fit(X_train, np.log(y_train))
+    y_pred = np.exp(np.clip(model.predict(X_test), np.log(dol), np.log(gora)))
 
     results[nazwa] = {
         "cech": len(cechy),

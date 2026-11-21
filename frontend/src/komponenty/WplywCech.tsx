@@ -18,10 +18,8 @@ import { opisCechy } from "@/dane/opisyCech"
 import type { Cechy, Wyjasnienie } from "@/typy"
 import { IkonaModulu } from "./IkonaModulu"
 
-// Tyle cech pokazujemy osobno, resztę sumujemy w jednym wierszu.
 const POKAZANE = 8
 
-// Metoda rozkładu wyceny dla każdego modelu, jak w backend/wycen_dzialke.py.
 const METODA: Record<string, string> = {
   "Linear Regression": "rozkład liniowy względem średniej działki z treningu",
   "Bayesian Ridge": "rozkład liniowy względem średniej działki z treningu",
@@ -33,7 +31,6 @@ const METODA: Record<string, string> = {
 type Props = {
   wyjasnienia: Wyjasnienie[]
   cechy: Cechy
-  // Ważność permutacyjna z treningu, osobno dla każdego modelu.
   waznosc: Record<string, Record<string, number>>
   najlepszy: string
 }

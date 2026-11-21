@@ -1,5 +1,3 @@
-// Serwer wyceny w Pythonie (backend/api.py). W trybie dev Vite przekazuje /api dalej.
-
 import type { Cechy, DaneDzialki, OpisModelu, Podpowiedz, Przeliczenie, WynikWyceny } from "@/typy"
 
 export type Zdarzenie =
@@ -26,7 +24,6 @@ async function wyslij(adres: string, dane: unknown) {
   return odpowiedz
 }
 
-// Backend wysyła jedną linię JSON po każdym kroku i podkroku, a na końcu cały wynik.
 export async function wycenDzialke(dzialka: DaneDzialki, onZdarzenie: (zdarzenie: Zdarzenie) => void) {
   const odpowiedz = await wyslij("/api/wycena", dzialka)
   const czytnik = odpowiedz.body!.getReader()
@@ -64,7 +61,6 @@ export async function przeliczCechy(cechy: Cechy) {
   return (await odpowiedz.json()) as Przeliczenie
 }
 
-// Podpowiedź nie jest konieczna do wyceny, więc błąd po prostu ją ukrywa.
 export async function podpowiedzObrebu(obreb: string) {
   try {
     const odpowiedz = await fetch("/api/podpowiedz?" + new URLSearchParams({ obreb }))
@@ -77,7 +73,6 @@ export async function podpowiedzObrebu(obreb: string) {
   }
 }
 
-// Metryki, ważność cech i statystyki z treningu. Bez serwera opis cech pokaże same teksty.
 export async function pobierzOpisModelu() {
   try {
     const odpowiedz = await fetch("/api/model")

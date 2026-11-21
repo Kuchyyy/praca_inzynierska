@@ -1,6 +1,5 @@
 import type { Granica, Punkt } from "@/typy"
 
-// Pole pierścienia wzorem Gaussa. Wynik w jednostkach współrzędnych do kwadratu.
 function polePierscienia(punkty: Punkt[]) {
   let suma = 0
   for (let i = 0; i < punkty.length - 1; i++) {
@@ -17,7 +16,6 @@ function dlugoscPierscienia(punkty: Punkt[]) {
   return suma
 }
 
-// Tak jak shapely w ETL: pole zewnętrznych pierścieni minus dziury.
 export function pole(granica: Granica) {
   let wynik = 0
   for (const wielokat of granica) {
@@ -29,7 +27,6 @@ export function pole(granica: Granica) {
   return wynik
 }
 
-// Tak jak shapely w ETL: obwód obejmuje też brzegi dziur.
 export function obwod(granica: Granica) {
   let wynik = 0
   for (const wielokat of granica) {
@@ -44,7 +41,6 @@ export function zwartosc(poleM2: number, obwodM: number) {
   return obwodM > 0 ? (4 * Math.PI * poleM2) / obwodM ** 2 : 0
 }
 
-// Środek ciężkości największego wielokąta. Wystarcza do mapy i okręgów sąsiedztwa.
 export function srodek(granica: Granica): Punkt {
   let najwiekszy = granica[0][0]
   for (const wielokat of granica) {
@@ -89,12 +85,10 @@ export function ramka(granica: Granica): [Punkt, Punkt] {
   ]
 }
 
-// WKT z ULDK, np. „SRID=2180;POLYGON((x y,x y,…),(…))” albo MULTIPOLYGON.
 export function zWkt(wkt: string): Granica {
   const tekst = wkt.replace(/^SRID=\d+;/, "").trim()
   const tresc = tekst.slice(tekst.indexOf("("))
 
-  // Wielokąty multipoligonu dzielimy po „)),((”, pierścienie wycinamy z nawiasów.
   const wielokatyTekst = tekst.startsWith("MULTIPOLYGON")
     ? tresc.slice(1, -1).split(/\)\s*\)\s*,\s*\(\s*\(/)
     : [tresc]
@@ -102,7 +96,6 @@ export function zWkt(wkt: string): Granica {
   const granica: Granica = []
   for (const wielokatTekst of wielokatyTekst) {
     const pierscienie: Punkt[][] = []
-    // Fragmenty między nawiasami to pierścienie; same przecinki między nimi pomijamy.
     const ciagi = (wielokatTekst.match(/[^()]+/g) ?? []).filter((c) => /\d/.test(c))
     for (const ciag of ciagi) {
       const punkty: Punkt[] = []
@@ -119,8 +112,6 @@ export function zWkt(wkt: string): Granica {
   return granica
 }
 
-// Narysowana granica jest w stopniach. Do pola i obwodu przeliczamy ją lokalnie na metry.
-// Na obszarze jednej działki błąd tego przybliżenia jest pomijalny.
 export function naMetry(granica: Granica, wokol: Punkt): Granica {
   const metryNaStopienY = 111320
   const metryNaStopienX = 111320 * Math.cos((wokol[1] * Math.PI) / 180)
@@ -131,7 +122,6 @@ export function naMetry(granica: Granica, wokol: Punkt): Granica {
   )
 }
 
-// Okrąg o promieniu w metrach wokół punktu w stopniach. Do rysowania promieni 2 i 5 km.
 export function okrag(wokol: Punkt, promien: number): Punkt[] {
   const metryNaStopienY = 111320
   const metryNaStopienX = 111320 * Math.cos((wokol[1] * Math.PI) / 180)

@@ -36,7 +36,6 @@ type Props = {
 
 type Status = "gotowe" | "trwa" | "blad" | "czeka"
 
-// Ile z kroku już policzono: 0 przed startem, 1 po zakończeniu.
 function udzialKroku(indeks: number, postep: Postep, zakonczony: boolean) {
   if (zakonczony || indeks < postep.krok) {
     return 1
@@ -118,7 +117,6 @@ export function Proces(props: Props) {
   )
 }
 
-// Pasek z sześcioma odcinkami w kolorach kroków. Każdy wypełnia się, gdy jego krok postępuje.
 function PasekPostepu({ postep, biezacy, blad }: { postep: Postep; biezacy: KrokProcesu; blad: boolean }) {
   const udzialy = KROKI.map((_, i) => udzialKroku(i, postep, false))
   const procent = useLicznik((udzialy.reduce((a, b) => a + b, 0) / KROKI.length) * 100, 500, 0)
@@ -150,7 +148,6 @@ function PasekPostepu({ postep, biezacy, blad }: { postep: Postep; biezacy: Krok
   )
 }
 
-// Pełny widok: płótno w kropki i sześć węzłów połączonych liniami, po których płyną dane.
 function Plotno({ postep, zakonczony, blad }: { postep: Postep; zakonczony: boolean; blad: boolean }) {
   const krok = zakonczony ? KROKI.length : postep.krok
 
@@ -188,7 +185,6 @@ type PropsLacznika = {
   plynie: boolean
 }
 
-// Linia między krokami: wypełnia się kolorem skończonego kroku, a punkt pokazuje dane płynące dalej.
 function Lacznik({ kolor, kolorDalej, wypelniony, plynie }: PropsLacznika) {
   return (
     <div className="relative mx-1 h-0.5 w-4 shrink-0 self-center bg-linia-mocna">
@@ -282,7 +278,6 @@ function Wezel({ krok, wynik, status }: PropsWezla) {
         <span className="text-pomocniczy">{wynik ? czas(wynik.czas) : "—"}</span>
       </div>
 
-      {/* Pasek skanowania w aktywnym kroku. */}
       {trwa && (
         <div className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-muted">
           <div className={cn("h-full w-2/5 animate-skan", TLO[krok.kolor])} />
@@ -292,7 +287,6 @@ function Wezel({ krok, wynik, status }: PropsWezla) {
   )
 }
 
-// Zwinięty widok po wycenie: jeden pasek z krokami i prawdziwymi czasami obliczeń.
 function PasekKrokow({ kroki }: { kroki: WynikKroku[] }) {
   return (
     <div className="flex items-center rounded-sm bg-muted px-3 py-2.5 animate-in fade-in slide-in-from-top-1 duration-500">
@@ -315,7 +309,6 @@ function PasekKrokow({ kroki }: { kroki: WynikKroku[] }) {
   )
 }
 
-// Co się dzieje w bieżącym kroku. Klucz z numerem kroku sprawia, że lista wjeżdża od nowa przy każdym kroku.
 function BiezacyKrok({ krok, podkrok }: { krok: KrokProcesu; podkrok: number }) {
   const gotowych = Math.min(podkrok, krok.podkroki.length)
 
@@ -387,14 +380,12 @@ function WycenianaDzialka({ dzialka, granicaGotowa }: { dzialka: DaneDzialki; gr
   )
 }
 
-// Kształt działki rysowany linią. Po kroku „Granica” pojawia się jej środek, od którego liczone są odległości.
 function MiniaturaDzialki({ granica, srodek, gotowa }: { granica: Granica; srodek: Punkt; gotowa: boolean }) {
   const punkty = granica.flatMap((wielokat) => wielokat.flat())
   if (punkty.length === 0) {
     return null
   }
 
-  // Długość geograficzna skrócona o cos(szerokości), żeby kształt nie był rozciągnięty.
   const szerokosc = punkty.reduce((suma, p) => suma + p[1], 0) / punkty.length
   const skrot = Math.cos((szerokosc * Math.PI) / 180)
   const xs = punkty.map((p) => p[0] * skrot)

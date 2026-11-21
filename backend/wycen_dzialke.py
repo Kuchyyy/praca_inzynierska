@@ -21,9 +21,11 @@ for model_name, model in models.items():
 
 nazwy_kolumn = preprocessing.get_feature_names_out()
 
+log_dol = math.log(opis["progi_ceny"]["dol"])
+log_gora = math.log(opis["progi_ceny"]["gora"])
+
 
 def wycen(cechy):
-    # KROK 1. Tabelka z jednym wierszem: cechy działki w tej samej kolejności co przy treningu.
     wiersz = {}
     for cecha in opis["cechy"]:
         wiersz[cecha] = cechy.get(cecha)
@@ -35,7 +37,6 @@ def wycen(cechy):
         else:
             X[cecha] = pd.to_numeric(X[cecha]).astype(float)
 
-    # KROK 2. To samo przygotowanie co dla X_test: mediany, skalowanie, kolumny 0/1, średnie gmin.
     X = preprocessing.transform(X)
     x = X[0]
 
@@ -46,10 +47,7 @@ def wycen(cechy):
         model_name = metryki["nazwa"]
         model = models[model_name]
 
-        # KROK 3. Cena za metr z tego modelu.
-        y_pred = model.predict(X)
-        if model_name in opis["log_models"]:
-            y_pred = np.exp(y_pred)
+        y_pred = np.exp(np.clip(model.predict(X), log_dol, log_gora))
         cena_modelu = float(y_pred[0])
 
         modele.append({
@@ -60,7 +58,6 @@ def wycen(cechy):
             "r2": metryki["r2"],
         })
 
-        # KROK 4. Ile dołożyła każda kolumna: regresja przez współczynniki, drzewa przez SHAP.
         if hasattr(model, "coef_"):
             srednia = np.array(opis["srednia_dzialka"])
             wklady_kolumn = model.coef_ * (x - srednia)
@@ -69,7 +66,6 @@ def wycen(cechy):
             wklady_kolumn = objasniacze[model_name].shap_values(X)[0]
             start = float(np.ravel(objasniacze[model_name].expected_value)[0])
 
-        # KROK 5. Kolumny po przygotowaniu wracają do swoich cech, np. "kategorie__nier_prawo_wlasnosc" to "nier_prawo".
         sumy = {}
         for cecha in opis["cechy"]:
             sumy[cecha] = 0.0
@@ -83,18 +79,14 @@ def wycen(cechy):
                         nazwa = cecha
             sumy[nazwa] += float(wklad)
 
-        # KROK 6. Modele na logarytmie: wkłady przeliczamy na zł/m², żeby dalej sumowały się do ceny.
-        if model_name in opis["log_models"]:
-            cena_startowa = math.exp(start)
-            cena = math.exp(start + sum(sumy.values()))
-            mnoznik = cena
-            if abs(math.log(cena) - math.log(cena_startowa)) > 1e-12:
-                mnoznik = (cena - cena_startowa) / (math.log(cena) - math.log(cena_startowa))
-            for cecha in sumy:
-                sumy[cecha] = sumy[cecha] * mnoznik
-        else:
-            cena_startowa = start
-            cena = start + sum(sumy.values())
+        suma = sum(sumy.values())
+        cena_startowa = math.exp(start)
+        cena = math.exp(min(max(start + suma, log_dol), log_gora))
+        mnoznik = cena
+        if abs(suma) > 1e-12:
+            mnoznik = (cena - cena_startowa) / suma
+        for cecha in sumy:
+            sumy[cecha] = sumy[cecha] * mnoznik
 
         wklady = []
         for cecha, wartosc in sumy.items():
@@ -103,7 +95,6 @@ def wycen(cechy):
 
         wyjasnienia.append({"model": model_name, "start": cena_startowa, "cena": cena, "wklady": wklady})
 
-    # KROK 7. Wynik z najlepszego modelu i przedział 80% zależny od liczby sprzedaży w okolicy (0, 1, 10, 30+).
     for model in modele:
         if model["nazwa"] == opis["najlepszy"]:
             najlepszy = model

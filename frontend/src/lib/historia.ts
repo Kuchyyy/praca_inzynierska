@@ -1,7 +1,5 @@
 import type { DaneDzialki, WynikWyceny } from "@/typy"
 
-// Ostatnie wyceny zapisane w tej przeglądarce. To tylko wygoda: bez dostępu do pamięci
-// (tryb prywatny, wyczyszczone dane) lista jest pusta, a panel działa dalej.
 const KLUCZ = "wycena-dzialek:historia"
 const LIMIT = 8
 
@@ -26,11 +24,10 @@ function zapisz(lista: WpisHistorii[]) {
   try {
     localStorage.setItem(KLUCZ, JSON.stringify(lista))
   } catch {
-    // Brak miejsca albo zablokowana pamięć: historia po prostu się nie zapisze.
+    return
   }
 }
 
-// Nowa wycena trafia na początek. Ta sama działka nie powtarza się na liście.
 export function dopiszDoHistorii(dzialka: DaneDzialki, wynik: WynikWyceny) {
   const powierzchnia = Number(dzialka.powierzchnia.replace(",", "."))
   const wpis: WpisHistorii = {

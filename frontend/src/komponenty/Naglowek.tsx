@@ -58,7 +58,6 @@ export function Naglowek(props: Props) {
   )
 }
 
-// Ostatnie wyceny z tej przeglądarki. Kliknięcie wycenia działkę jeszcze raz z tymi samymi danymi.
 function HistoriaWycen({ historia, onOtworz, onWyczyscHistorie }: Props) {
   return (
     <DropdownMenu>

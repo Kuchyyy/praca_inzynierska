@@ -14,8 +14,6 @@ from sklearn.pipeline import make_pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import TargetEncoder
-from sklearn.model_selection import KFold
 
 from sklearn.metrics import mean_absolute_error
 
@@ -27,8 +25,8 @@ from etl.etap6_cechy.cechy_dzialki import PRZEZNACZENIA
 
 GRUPY = {
     "transakcja": ["tran_sprzedajacy", "nier_prawo", "dzi_sposob_uzyt"],
-    "lokalizacja": ["teryt_woj", "teryt_powiat", "teryt_gmina"],
-    "polozenie": ["x_2180", "y_2180", "powierzchnia_m2", "log_powierzchnia", "wskaznik_zwartosci"],
+    "lokalizacja": ["teryt_woj", "teryt_powiat"],
+    "polozenie": ["x_2180", "y_2180", "log_powierzchnia", "wskaznik_zwartosci"],
     "czas": ["rok", "miesiace_od_2015"],
     "osm": [
         "odl_najblizszy_budynek_m",
@@ -64,25 +62,22 @@ models = {
     ),
 }
 
-log_models = ["Linear Regression", "Bayesian Ridge", "Decision Tree"]
 
 
 def przetwarzanie(cechy):
     liczby = [c for c in cechy if c not in KATEGORYCZNE]
-    kategorie = [c for c in cechy if c in KATEGORYCZNE and c not in ["teryt_powiat", "teryt_gmina"]]
-    teryt = [c for c in cechy if c in ["teryt_powiat", "teryt_gmina"]]
+    kategorie = [c for c in cechy if c in KATEGORYCZNE]
 
     return ColumnTransformer(
         [
             ("liczby", make_pipeline(SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True), StandardScaler()), liczby),
             ("kategorie", make_pipeline(SimpleImputer(strategy="constant", fill_value="brak", keep_empty_features=True), OneHotEncoder(handle_unknown="ignore", sparse_output=False)), kategorie),
-            ("teryt", make_pipeline(SimpleImputer(strategy="constant", fill_value="brak", keep_empty_features=True), TargetEncoder(target_type="continuous", cv=KFold(5, shuffle=True, random_state=1))), teryt),
         ],
         sparse_threshold=0,
     )
 
 
-kolumny = list(dict.fromkeys(CECHY + ["cena_m2", "dok_data", "dzi_id_dzialki", "teryt_obreb"]))
+kolumny = list(dict.fromkeys(CECHY + ["cena_m2", "dok_data", "dzi_id_dzialki", "teryt_obreb", "teryt_gmina"]))
 wszystkie = pd.read_parquet(config.SCIEZKA_PELNE_CECHY, columns=kolumny)
 
 results = {model_name: [] for model_name in models}
@@ -93,7 +88,6 @@ for rok in config.WALIDACJA_LATA:
     od = pd.Timestamp(f"{rok}-01-01")
     do = pd.Timestamp(f"{rok + 1}-01-01")
 
-    # Cechy sąsiedztwa liczone od nowa: referencją są tylko transakcje sprzed roku walidacji.
     dane = wszystkie[wszystkie["dok_data"] < do].drop(columns=CECHY_SASIEDZTWA)
     dane = dodaj_sasiedztwo(dane, od)
     for cecha in KATEGORYCZNE:
@@ -102,7 +96,6 @@ for rok in config.WALIDACJA_LATA:
     train = dane[dane["zbior"] == "trening"]
     valid = dane[dane["zbior"] == "test"]
 
-    # Progi ceny jak w modele.py, liczone tylko na części uczącej.
     dol = float(train["cena_m2"].quantile(config.CENA_M2_KWANTYL_DOL))
     gora = float(train["cena_m2"].quantile(config.CENA_M2_KWANTYL_GORA))
     train = train[train["cena_m2"].between(dol, gora)]
@@ -112,16 +105,12 @@ for rok in config.WALIDACJA_LATA:
     y_valid = valid["cena_m2"].to_numpy()
 
     preprocessing = przetwarzanie(CECHY)
-    X_train = preprocessing.fit_transform(train[CECHY], np.log(y_train))
+    X_train = preprocessing.fit_transform(train[CECHY])
     X_valid = preprocessing.transform(valid[CECHY])
 
     for model_name, model in models.items():
-        if model_name in log_models:
-            model.fit(X_train, np.log(y_train))
-            y_pred = np.exp(model.predict(X_valid))
-        else:
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_valid)
+        model.fit(X_train, np.log(y_train))
+        y_pred = np.exp(np.clip(model.predict(X_valid), np.log(dol), np.log(gora)))
 
         results[model_name].append(mean_absolute_error(y_valid, y_pred))
         mediany_bledu[model_name].append(np.median(np.abs(y_pred - y_valid) / y_valid) * 100)

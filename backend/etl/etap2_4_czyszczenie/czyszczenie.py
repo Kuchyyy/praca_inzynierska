@@ -82,7 +82,6 @@ def oczysc(wejscie, wyjscie):
     lejek.append(("każdy wiersz ma numer działki", len(dane)))
     print(f"  zostało: {len(dane):,}")
 
-    # Jedna cena za kilka działek: nie wiadomo, ile kosztowała każda z nich.
     print("KROK 5. Transakcje obejmujące kilka działek")
     dzialki = dane.groupby("klucz_transakcji")["dzi_id_dzialki"].nunique()
     zle = dzialki[dzialki > 1].index
@@ -90,7 +89,6 @@ def oczysc(wejscie, wyjscie):
     lejek.append(("jedna działka w transakcji", len(dane)))
     print(f"  zostało: {len(dane):,}")
 
-    # Transakcja z kilkoma wierszami: wszystkie muszą być identyczne, inaczej nie wiadomo, który jest prawdziwy.
     print("KROK 6. Transakcje ze sprzecznymi wpisami (ten sam klucz, inne dane)")
     wiersze_w_transakcji = dane["klucz_transakcji"].value_counts()
     kilka_wierszy = wiersze_w_transakcji[wiersze_w_transakcji > 1].index
@@ -160,7 +158,6 @@ def oczysc(wejscie, wyjscie):
     dane = dane[np.isfinite(cena) & (cena > 0)]
     lejek.append(("jest dodatnia cena", len(dane)))
 
-    # Jeśli podano cenę nieruchomości albo działki, musi być równa cenie całej transakcji.
     zgodne = pd.Series(True, index=dane.index)
     for kolumna in ["nier_cena_brutto", "dzi_cena_brutto"]:
         podana = dane[kolumna].notna() & (dane[kolumna] != 0)

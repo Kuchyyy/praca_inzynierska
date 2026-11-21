@@ -11,7 +11,6 @@ CECHY = [
     "mediana_cena_m2_obreb",
     "mediana_cena_m2_gmina",
     "liczba_transakcji_2km_24m",
-    "trend_cen_gmina_12m",
     "odl_najblizsza_transakcja_m",
 ]
 
@@ -21,7 +20,6 @@ def dodaj_sasiedztwo(dane, test_od):
 
     dzien = dane["dok_data"].dt.normalize()
     daty = dzien.to_numpy()
-    rok_wczesniej = (dzien - pd.DateOffset(months=12)).to_numpy()
     dwa_lata_wczesniej = (dzien - pd.DateOffset(months=24)).to_numpy()
     ceny = dane["cena_m2"].to_numpy()
     dzialki = dane["dzi_id_dzialki"].to_numpy()
@@ -36,8 +34,6 @@ def dodaj_sasiedztwo(dane, test_od):
         wyniki[nazwa] = np.full(len(dane), np.nan)
     wyniki["liczba_transakcji_2km_24m"][:] = 0
 
-    # Zasady dla wszystkich cech: ceny bierzemy tylko z treningu, tylko ze sprzedaży
-    # z wcześniejszego dnia i nigdy z wcześniejszej sprzedaży tej samej działki.
 
     print("Sąsiedztwo, część 1: mediana ceny w obrębie", flush=True)
     for wiersze_obrebu in dane.groupby("teryt_obreb").indices.values():
@@ -53,7 +49,7 @@ def dodaj_sasiedztwo(dane, test_od):
             if len(wczesniejsze) > 0:
                 wyniki["mediana_cena_m2_obreb"][i] = np.median(ceny[wczesniejsze])
 
-    print("Sąsiedztwo, część 2: mediana ceny i trend w gminie", flush=True)
+    print("Sąsiedztwo, część 2: mediana ceny w gminie", flush=True)
     for wiersze_gminy in dane.groupby("teryt_gmina").indices.values():
         zrodla = wiersze_gminy[trening[wiersze_gminy]]
         zrodla = zrodla[np.argsort(daty[zrodla], kind="stable")]
@@ -68,13 +64,6 @@ def dodaj_sasiedztwo(dane, test_od):
                 continue
 
             wyniki["mediana_cena_m2_gmina"][i] = np.median(ceny[wczesniejsze])
-
-            ostatni_rok = wczesniejsze[daty[wczesniejsze] >= rok_wczesniej[i]]
-            poprzedni_rok = wczesniejsze[
-                (daty[wczesniejsze] >= dwa_lata_wczesniej[i]) & (daty[wczesniejsze] < rok_wczesniej[i])
-            ]
-            if len(ostatni_rok) > 0 and len(poprzedni_rok) > 0:
-                wyniki["trend_cen_gmina_12m"][i] = np.median(ceny[ostatni_rok]) / np.median(ceny[poprzedni_rok]) - 1
 
     print("Sąsiedztwo, część 3: sprzedaże w promieniu 2 i 5 km", flush=True)
     sprzedaze_treningowe = np.flatnonzero(trening)
@@ -93,7 +82,6 @@ def dodaj_sasiedztwo(dane, test_od):
         if len(sasiedzi) > 0:
             wyniki["odl_najblizsza_transakcja_m"][i] = odleglosci.min()
         elif daty[i] > pierwsza_data:
-            # Nikogo w 5 km: szukamy najbliższej wcześniejszej sprzedaży coraz dalej (32, 64, 128... sąsiadów).
             ile = min(32, len(sprzedaze_treningowe))
             while True:
                 dystanse, pozycje = drzewo.query(xy[i], k=ile)

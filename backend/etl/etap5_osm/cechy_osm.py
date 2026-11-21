@@ -10,7 +10,6 @@ from etl.etap5_osm.warstwy import przygotuj_warstwy
 
 
 def odleglosci_do_geometrii(punkty, geometrie):
-    # Dla każdego środka działki odległość w metrach do najbliższego obiektu warstwy (do krawędzi, nie do środka).
     wynik = np.full(len(punkty), np.nan)
     drzewo = shapely.STRtree(geometrie)
     indeksy, dystanse = drzewo.query_nearest(punkty, all_matches=False, return_distance=True)
@@ -19,7 +18,6 @@ def odleglosci_do_geometrii(punkty, geometrie):
 
 
 def udzial_w_kole(punkty, geometrie, promien):
-    # Jaka część koła wokół środka działki jest zajęta przez obszary warstwy (np. las). Od 0 do 1.
     wynik = np.zeros(len(punkty))
     drzewo = shapely.STRtree(geometrie)
 

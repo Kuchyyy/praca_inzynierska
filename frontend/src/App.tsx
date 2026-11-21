@@ -40,8 +40,6 @@ import type {
 
 const POCZATEK: Postep = { krok: 0, podkrok: 0, kroki: [] }
 
-// Backend liczy wycenę w ułamku sekundy. Panel odtwarza kroki w czytelnym tempie (razem ok. 3 s),
-// a w węzłach pokazuje prawdziwe czasy obliczeń z backendu.
 const TEMPO_PODKROKU = 120
 const TEMPO_KROKU = 260
 
@@ -53,24 +51,19 @@ export function App() {
   const [postep, setPostep] = useState<Postep>(POCZATEK)
   const [blad, setBlad] = useState("")
   const [wynik, setWynik] = useState<WynikWyceny | null>(null)
-  // Wynik trybu „co jeśli”. Pusty, dopóki nikt nie zmienił cech.
   const [przeliczenie, setPrzeliczenie] = useState<Przeliczenie | null>(null)
   const [rozwiniety, setRozwiniety] = useState(false)
   const [szukam, setSzukam] = useState(false)
   const [komunikat, setKomunikat] = useState("")
   const [historia, setHistoria] = useState<WpisHistorii[]>(wczytajHistorie)
-  // Liczą zapytania, żeby spóźniona odpowiedź nie nadpisała nowszej.
   const numerZapytania = useRef(0)
   const numerWyceny = useRef(0)
-  // Ustawione przez „Pomiń animację” albo systemowe „ogranicz ruch”: kroki bez czekania.
   const pomin = useRef(false)
 
-  // Metryki i statystyki modeli do opisu cech. Pobierane raz, przy starcie panelu.
   useEffect(() => {
     pobierzOpisModelu().then(setOpisModelu)
   }, [])
 
-  // Podpowiedź przeznaczenia z transakcji w obrębie wybranej działki.
   const obreb = dzialka?.terytObrebu ?? ""
   useEffect(() => {
     if (!obreb) {
@@ -88,7 +81,6 @@ export function App() {
     }
   }, [obreb])
 
-  // Wspólna obsługa zapytań do ULDK: stan ładowania, brak wyniku i błąd sieci.
   async function zapytajUldk(zapytanie: () => Promise<DaneDzialki | null>, brak: string) {
     const numer = ++numerZapytania.current
     setSzukam(true)
@@ -134,7 +126,6 @@ export function App() {
     )
   }
 
-  // Backend liczy cechy i modele, a po każdym kroku przysyła postęp.
   async function wycen(dane: DaneDzialki | null = dzialka) {
     if (!dane) {
       return
@@ -152,7 +143,6 @@ export function App() {
       return pomin.current ? Promise.resolve() : new Promise((gotowe) => setTimeout(gotowe, ms))
     }
 
-    // Zdarzenia z backendu trafiają do kolejki i pokazują się po kolei, każde przez chwilę.
     let kolejka = Promise.resolve()
     try {
       const gotowy = await wycenDzialke(dane, (zdarzenie) => {
@@ -175,13 +165,11 @@ export function App() {
         setWynik(gotowy)
         setEtap("wynik")
         setHistoria(dopiszDoHistorii(dane, gotowy))
-        // Gdy serwer nie działał przy starcie panelu, opis modeli pobieramy teraz.
         if (!opisModelu) {
           pobierzOpisModelu().then(setOpisModelu)
         }
       }
     } catch (e) {
-      // Błąd pokazujemy dopiero po odtworzeniu kroków, które zdążyły się policzyć.
       await kolejka
       if (numer === numerWyceny.current) {
         setBlad(e instanceof Error ? e.message : String(e))
@@ -189,7 +177,6 @@ export function App() {
     }
   }
 
-  // Wycena z historii: te same dane działki, liczone od nowa obecnymi modelami.
   function otworzZHistorii(wpis: WpisHistorii) {
     setDzialka(wpis.dzialka)
     wycen(wpis.dzialka)
@@ -200,7 +187,6 @@ export function App() {
     setEtap("dane")
   }
 
-  // Tryb „co jeśli”: te same modele na zmienionych cechach. Bez zmian wracamy do wyniku.
   async function przelicz(cechy: Cechy | null) {
     if (!cechy) {
       setPrzeliczenie(null)
@@ -228,7 +214,6 @@ export function App() {
         <div className="flex flex-col gap-4">
         {etap === "dane" && (
           <div className="flex items-start gap-4">
-            {/* Mapa przyklejona pod nagłówkiem: zostaje na ekranie przy przewijaniu formularza. */}
             <Card className="sticky top-19 h-[calc(100svh-6rem)] min-h-120 flex-1">
               <CardHeader>
                 <CardTitle>1. Wskaż działkę</CardTitle>

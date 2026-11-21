@@ -2,8 +2,6 @@ import type { DaneDzialki, Granica } from "@/typy"
 import { naMetry, obwod, pole, srodek, zwartosc } from "./geometria"
 import type { DzialkaUldk, ObrebUldk } from "./uldk"
 
-// Pola, których nie ma w ewidencji. Prawo i sprzedający mają najczęstsze wartości z RCN,
-// rodzaj gruntu i przeznaczenie użytkownik musi wybrać sam.
 function poleFormularza() {
   return {
     rodzajGruntu: "",
@@ -21,7 +19,6 @@ export function zUldk(dzialka: DzialkaUldk): DaneDzialki {
     zrodloGranicy: "uldk",
     numer: dzialka.numer,
     obreb: dzialka.obreb,
-    // Identyfikator działki to obręb, kropka i numer, np. 121905_5.0013.43/1.
     terytObrebu: dzialka.identyfikator.split(".").slice(0, 2).join("."),
     gmina: dzialka.gmina,
     powiat: dzialka.powiat,

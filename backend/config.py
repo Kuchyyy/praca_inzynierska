@@ -10,7 +10,6 @@ SCIEZKA_CECHY_OSM = "db/dane/gotowe/polska_cechy_osm/transakcje.parquet"
 SCIEZKA_PELNE_CECHY = "db/dane/gotowe/polska_pelne_cechy/transakcje.parquet"
 SCIEZKA_MODELU = "db/dane/gotowe/model.joblib"
 
-# Etapy, które pobierają dane z sieci, zapisują do bazy albo uczą modele, włączamy ręcznie.
 UZUPELNIJ_ULDK = False
 UZUPELNIJ_EGIB = False
 IMPORTUJ_DO_BAZY = False
@@ -22,7 +21,7 @@ WAZNOSC_CECH = False
 DATA_DO = "2026-10-02"
 ROK_OD = 2015
 TEST_OD = "2025-01-01"
-# Lata walidacji kroczącej (walidacja_kroczaca_modele.py): uczenie na latach wcześniejszych.
+WALIDACJA_OD = "2024-01-01"
 WALIDACJA_LATA = [2021, 2022, 2023, 2024]
 WOJEWODZTWO = None
 WIELKOSC_PARTII = 25000
@@ -33,7 +32,6 @@ POWIERZCHNIA_MAX = 200000
 TOLERANCJA_POLA_DOL = 0.80
 TOLERANCJA_POLA_GORA = 1.25
 
-# Kolumny czytane z RCN
 KOLUMNY_POTRZEBNE = [
     "teryt",
     "serwis_rcn",
@@ -69,15 +67,11 @@ CENA_M2_KWANTYL_GORA = 0.998
 WAZNOSC_PROBKA = 20000
 WAZNOSC_POWTORZENIA = 3
 
-# Baza działa lokalnie w Dockerze, bez haseł.
 POSTGRES_HOST = "127.0.0.1"
 POSTGRES_PORT = 5432
 POSTGRES_DB = "dzialki"
 API_PORT = 8000
 
-# Eksperymenty z cechami: python eksperymenty_cech.py.
-# Nazwa eksperymentu: co pomijamy. Można podać grupę (transakcja, lokalizacja, polozenie,
-# czas, osm, przeznaczenie, sasiedztwo) albo pojedynczą cechę. Pusta lista = wszystkie cechy.
 EKSPERYMENTY = {
     "wszystkie_cechy": [],
     "bez_osm": ["osm"],

@@ -80,28 +80,49 @@ sprzed daty wyceny), potem predykcje pięciu modeli i przedział 80%.
 
 ## Modele
 
-`modele.py` to zwykły skrypt od góry do dołu (`python modele.py` albo etap 8 w `main.py`). Uczy pięć modeli na transakcjach przed `TEST_OD` (2025-01-01)
-i ocenia je na transakcjach od tej daty. Zapisuje tylko jeden plik:
-`db/dane/gotowe/model.joblib`. Wczytuje go `wycen_dzialke.py`, który podaje
+`modele.py` to zwykły skrypt od góry do dołu (`python modele.py` albo etap 8 w `main.py`). Działa w dwóch krokach:
+
+1. Uczy pięć modeli na transakcjach do końca 2023 r. i ocenia je na walidacji, czyli sprzedażach z 2024 r.
+   (`WALIDACJA_OD`). Tu wybiera najlepszy model i ustala przedział 80%.
+2. Uczy te same modele na całym treningu (przed `TEST_OD`, 2025-01-01) i ocenia je na teście od tej daty.
+   Test służy tylko do oceny i do sprawdzenia, ile prawdziwych cen mieści się w przedziale.
+
+Zapisuje tylko jeden plik: `db/dane/gotowe/model.joblib`. Wczytuje go `wycen_dzialke.py`, który podaje
 cechy nowej działki nauczonym modelom (`predict`) dla serwera wyceny.
 
-- Progi ceny za m² (0,1% i 99,8%) liczone są tylko na treningu i tak samo stosowane do testu.
-- Jedno przygotowanie danych dla wszystkich modeli (`fit_transform` na treningu, `transform` na teście):
-  powiat i gmina kodowane średnią log-ceny z treningu (`TargetEncoder`),
+- Progi ceny za m² (0,1% i 99,8%) liczone są tylko na treningu i tak samo stosowane do walidacji i testu.
+- Jedno przygotowanie danych dla wszystkich modeli (`fit_transform` na części uczącej, `transform` na reszcie):
+  powiat i gmina kodowane średnią log-ceny (`TargetEncoder`),
   pozostałe kategorie jako 0/1, liczby z medianą i wskaźnikiem braku.
 - Regresje i drzewo uczą się na logarytmie ceny (`log_models`), las i boosting na cenie wprost.
+  Wynik modeli na logarytmie jest obcinany do progów ceny. Bez tego regresja liniowa dawała
+  w walidacji kroczącej wyceny rzędu 10^21 zł/m², bo mediany cen z okolicy zawierają czasem błędne ceny z RCN.
 - Wkład cech w wycenę: regresje liniowo względem średniej działki, drzewa przez SHAP.
-- Ważność cech: wzrost MAE po przetasowaniu cechy na próbce testu.
+- Ważność cech: wzrost MAE po przetasowaniu cechy na próbce testu (`python waznosc_cech.py`).
 
-Wyniki na teście (transakcje od 01.01.2025, zł/m²):
+Wyniki (zł/m²; walidacja: sprzedaże z 2024 r., test: od 01.01.2025):
 
-| Model | MAE | RMSE | R² | Mediana błędu względnego |
-|---|---:|---:|---:|---:|
-| Gradient Boosting | 65,28 | 240,7 | 0,394 | 36,1% |
-| Random Forest | 69,90 | 233,0 | 0,432 | 41,6% |
-| Decision Tree | 74,12 | 262,1 | 0,281 | 41,7% |
-| Bayesian Ridge | 80,04 | 299,0 | 0,065 | 47,6% |
-| Linear Regression | 80,03 | 299,0 | 0,065 | 47,6% |
+| Model | MAE walidacja | MAE test | RMSE test | R² test | Mediana błędu względnego |
+|---|---:|---:|---:|---:|---:|
+| Gradient Boosting | 63,88 | 65,28 | 240,7 | 0,394 | 36,1% |
+| Random Forest | 69,49 | 69,90 | 233,0 | 0,432 | 41,6% |
+| Decision Tree | 72,78 | 74,12 | 262,1 | 0,281 | 41,7% |
+| Linear Regression | 79,65 | 79,35 | 275,0 | 0,209 | 47,6% |
+| Bayesian Ridge | 79,65 | 79,35 | 275,0 | 0,209 | 47,6% |
+
+Na walidacji wygrywa Gradient Boosting i to on daje wycenę w panelu. Przedział 80% ustalony
+na walidacji obejmuje na teście 79,8% prawdziwych cen (od 78,2% przy braku transakcji w 2 km do 81,4% przy 30+).
+
+Walidacja krocząca (`python walidacja_kroczaca_modele.py`): uczenie na latach wcześniejszych, ocena na kolejnym roku,
+cechy sąsiedztwa liczone od nowa dla każdego roku. MAE w zł/m²:
+
+| Model | 2021 | 2022 | 2023 | 2024 | Średnia |
+|---|---:|---:|---:|---:|---:|
+| Gradient Boosting | 46,92 | 49,02 | 57,90 | 65,39 | 54,81 |
+| Random Forest | 47,77 | 51,03 | 61,98 | 69,32 | 57,52 |
+| Decision Tree | 53,57 | 55,48 | 65,42 | 74,28 | 62,19 |
+| Linear Regression | 55,60 | 58,47 | 75,19 | 80,74 | 67,50 |
+| Bayesian Ridge | 55,61 | 58,46 | 75,19 | 80,75 | 67,50 |
 
 Eksperymenty z cechami: `python eksperymenty_cech.py`. Lista jest w `config.py` (`EKSPERYMENTY`):
 nazwa eksperymentu i grupy albo pojedyncze cechy, które pomijamy. Skrypt uczy Gradient Boosting

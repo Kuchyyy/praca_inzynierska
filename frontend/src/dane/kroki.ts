@@ -1,6 +1,3 @@
-// Kroki wyceny w tej samej kolejności co w backend/api.py. Podkroki odpowiadają
-// zdarzeniom „podkrok”, które backend wysyła po każdej grupie obliczeń.
-
 import type { KrokProcesu } from "@/typy"
 
 export const KROKI: KrokProcesu[] = [
@@ -33,12 +30,12 @@ export const KROKI: KrokProcesu[] = [
   {
     numer: 4,
     nazwa: "Sąsiedztwo cenowe",
-    opis: "8 cech z wcześniejszych transakcji",
+    opis: "7 cech z wcześniejszych transakcji",
     kolor: "rynek",
     podkroki: [
       "Transakcje w promieniu 2 i 5 km z 24 mies.",
       "Najbliższa wcześniejsza transakcja",
-      "Mediany w obrębie i gminie, trend 12 mies.",
+      "Mediany w obrębie i gminie",
     ],
   },
   {

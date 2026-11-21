@@ -26,7 +26,6 @@ def wczytaj_ksztalt(dane_binarne):
 
 
 def ustal_powierzchnie(pow_ewid, pole_z_granicy):
-    # Powierzchnia z ewidencji musi się zgadzać z polem granicy. Czasem wpisano ją w hektarach.
     if pd.isna(pow_ewid) or not np.isfinite(pow_ewid) or pow_ewid <= 0:
         return pole_z_granicy, "pole_z_geometrii"
 

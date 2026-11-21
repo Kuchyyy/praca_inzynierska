@@ -29,19 +29,14 @@ import { data, liczba, zaM2 } from "@/lib/format"
 import { RODZAJE_GRUNTU, nazwaOpcji } from "@/dane/slowniki"
 import type { Granica, Punkt, Transakcja } from "@/typy"
 
-// Start mapy przed wyborem działki: okolice Krakowa.
 const START_MAPY: Punkt = [20.0886, 50.0187]
 
-// Neutralny podkład bez klucza API. Atrybucja OSM pokazuje się sama.
 const STYL_MAPY = "https://tiles.openfreemap.org/styles/positron"
 
 const PUSTE: FeatureCollection = { type: "FeatureCollection", features: [] }
 
-// Rysowanie: najpierw stawiamy narożniki, po zamknięciu kształtu można go jeszcze poprawiać.
-// Granica idzie do wyceny dopiero po kliknięciu „Zakończ wybieranie pola”.
 type Rysowanie = "brak" | "rysuje" | "edytuje"
 
-// Granica narysowanego kształtu w postaci, jakiej oczekuje reszta aplikacji.
 function granicaKsztaltu(narzedzie: TerraDraw, id: string | number): Granica | null {
   const obiekt = narzedzie.getSnapshotFeature(id)
   if (!obiekt || obiekt.geometry.type !== "Polygon") {
@@ -50,7 +45,6 @@ function granicaKsztaltu(narzedzie: TerraDraw, id: string | number): Granica | n
   return [obiekt.geometry.coordinates as Punkt[][]]
 }
 
-// Vite przenosi bibliotekę w inne miejsce, więc MapLibre sam nie znajdzie swojego workera.
 setWorkerUrl(adresWorkera)
 
 type Wybor = {
@@ -63,14 +57,11 @@ type Wybor = {
 type Props = {
   granica: Granica | null
   srodek: Punkt | null
-  // Po wycenie: transakcje z okolicy, z których liczono sąsiedztwo cenowe.
   transakcje?: Transakcja[]
-  // Tylko na etapie wskazywania działki.
   wybor?: Wybor
   className?: string
 }
 
-// MapLibre wymaga WebGL2. Bez niego pokazujemy komunikat zamiast mapy, a reszta panelu działa.
 function maWebGl2() {
   try {
     return document.createElement("canvas").getContext("webgl2") !== null
@@ -86,7 +77,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
   const wyborRef = useRef(wybor)
   const rysowanieRef = useRef<Rysowanie>("brak")
   const idKsztaltu = useRef<string | number | null>(null)
-  // Ustawione, gdy kształt zamyka przycisk „Zakończ”, a nie kliknięcie w pierwszy punkt.
   const zamykaPrzycisk = useRef(false)
   const [uwaga, setUwaga] = useState("")
   const [gotowa, setGotowa] = useState(false)
@@ -98,7 +88,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
     wyborRef.current = wybor
   }, [wybor])
 
-  // Mapę tworzymy raz. Dane działki zmieniamy w osobnych efektach.
   useEffect(() => {
     if (!kontener.current || bezMapy) {
       return
@@ -110,11 +99,9 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
       center: START_MAPY,
       zoom: 14,
     })
-    // Górę mapy zajmuje pasek narzędzi, więc przyciski powiększenia są na dole.
     nowa.addControl(new NavigationControl({ showCompass: false }), "bottom-right")
 
     nowa.on("load", () => {
-      // Granice i numery działek z ewidencji GUGiK, przerobione na wyraźniejsze (src/lib/ewidencja.ts).
       nowa.addSource("ewidencja-granice", {
         type: "raster",
         tiles: [KAFLE_GRANIC],
@@ -152,7 +139,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
           "circle-stroke-width": 1.5,
         },
       })
-      // Sam obrys bez wypełnienia, żeby pod spodem było widać mapę i granice z ewidencji.
       nowa.addLayer({
         id: "dzialka-obwodka",
         type: "line",
@@ -165,7 +151,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
         source: "dzialka",
         paint: { "line-color": kolorCss("akcja"), "line-width": 3.5 },
       })
-      // Przy małym powiększeniu działka jest za mała, więc pokazujemy jej środek.
       nowa.addLayer({
         id: "srodek",
         type: "circle",
@@ -179,7 +164,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
         },
       })
 
-      // Narzędzie do rysowania granicy. Sam obrys, bez wypełnienia i bez przezroczystości.
       if (wyborRef.current) {
         const akcja = kolorCss("akcja") as `#${string}`
         const narzedzie = new TerraDraw({
@@ -227,13 +211,11 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
           ],
         })
         narzedzie.start()
-        // Zamknięty kształt od razu przechodzi w edycję: narożniki można przesuwać.
         narzedzie.on("finish", (id, kontekst) => {
           if (kontekst.mode !== "polygon") {
             return
           }
           idKsztaltu.current = id
-          // Przy zamknięciu przyciskiem resztą zajmuje się „Zakończ wybieranie pola”.
           if (zamykaPrzycisk.current) {
             return
           }
@@ -246,7 +228,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
       setGotowa(true)
     })
 
-    // Po najechaniu na transakcję pokazujemy jej cenę, datę i powierzchnię.
     const dymek = new Popup({ closeButton: false, closeOnClick: false, offset: 8 })
     nowa.on("mouseenter", "transakcje", (zdarzenie) => {
       const obiekt = zdarzenie.features?.[0]
@@ -270,7 +251,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
     nowa.on("zoomend", () => setZoom(nowa.getZoom()))
 
     nowa.on("click", (zdarzenie: MapMouseEvent) => {
-      // Dopóki rysowanie nie jest zakończone, kliknięcia należą do narzędzia.
       if (rysowanieRef.current !== "brak") {
         setUwaga("")
         return
@@ -316,8 +296,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
     setRysowanieStan("brak")
   }
 
-  // Dopiero tutaj granica trafia do wyceny. Działa w trakcie stawiania narożników
-  // i po zamknięciu kształtu, zawsze z tym, co jest teraz narysowane.
   function zakonczRysowanie() {
     const narzedzie = rysowanie.current
     const m = mapa.current
@@ -326,8 +304,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
     }
 
     if (rysowanieStan === "rysuje") {
-      // Zamykamy kształt z postawionych narożników, tak jak klawisz Enter w terra-draw.
-      // Bieżąca pozycja kursora nie staje się narożnikiem.
       zamykaPrzycisk.current = true
       m.getCanvas().dispatchEvent(new KeyboardEvent("keyup", { key: "Enter" }))
       zamykaPrzycisk.current = false
@@ -347,7 +323,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
     wylaczRysowanie()
   }
 
-  // Granica działki, a po wycenie także okolica.
   useEffect(() => {
     const m = mapa.current
     if (!m || !gotowa) {
@@ -405,7 +380,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
       ],
     })
 
-    // Pokazujemy cały promień 5 km.
     const granice = new LngLatBounds(okrag5km[0], okrag5km[0])
     for (const punkt of okrag5km) {
       granice.extend(punkt)
@@ -415,10 +389,8 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
 
   return (
     <div className={cn("relative overflow-hidden rounded-sm border", className)}>
-      {/* Styl inline, bo CSS MapLibre nadpisuje klasę „absolute” na „relative”. */}
       <div ref={kontener} style={{ position: "absolute", inset: 0 }} />
 
-      {/* Pasek narzędzi przyklejony do górnej krawędzi mapy. */}
       {wybor && (
         <div className="absolute inset-x-0 top-0 flex items-center gap-2 border-b bg-card p-2">
 
@@ -426,7 +398,6 @@ export function Mapa({ granica, srodek, transakcje, wybor, className }: Props) {
             {rysowanieStan === "brak" ? <PencilIcon data-icon="inline-start" /> : <RotateCcwIcon data-icon="inline-start" />}
             {rysowanieStan === "brak" ? "Narysuj granicę" : "Rysuj od nowa"}
           </Button>
-          {/* Przyciski rysowania pokazujemy dopiero w trakcie rysowania. */}
           {rysowanieStan !== "brak" && (
             <>
               <Button onClick={zakonczRysowanie}>

@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { TLO } from "@/lib/kolory"
 import type { Kolor } from "@/typy"
 
-// Kolorowy kwadrat przy tytule modułu: ikona modułu albo numer kroku.
 export function IkonaModulu({ kolor, ikona: Ikona, tekst }: { kolor: Kolor; ikona?: LucideIcon; tekst?: string }) {
   let zawartosc = <span className="size-2 bg-white" />
   if (tekst) {

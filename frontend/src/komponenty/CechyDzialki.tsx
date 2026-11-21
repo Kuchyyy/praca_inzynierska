@@ -40,16 +40,13 @@ type Props = {
   cechy: Cechy
   naTle: { obszar: "gmina" | "powiat"; percentyle: Record<string, number | null> }
   cenaM2: number
-  // Wycena po zmianie cech albo null, gdy pokazujemy wycenę na wyliczonych cechach.
   przeliczona: number | null
   onPrzelicz: (cechy: Cechy | null) => Promise<void>
 }
 
 export function CechyDzialki({ cechy, naTle, cenaM2, przeliczona, onPrzelicz }: Props) {
   const [grupa, setGrupa] = useState("wszystkie")
-  // Wpisane wartości trzymamy jako tekst, żeby dało się wpisać np. „0,”.
   const [wpisane, setWpisane] = useState<Record<string, string>>({})
-  // Wpisy, z którymi liczono ostatnie przeliczenie.
   const [przeliczone, setPrzeliczone] = useState<Record<string, string>>({})
   const [liczy, setLiczy] = useState(false)
   const [blad, setBlad] = useState("")
@@ -227,7 +224,6 @@ export function CechyDzialki({ cechy, naTle, cenaM2, przeliczona, onPrzelicz }: 
   )
 }
 
-// W polu pokazujemy rozsądną liczbę miejsc po przecinku, z polskim przecinkiem.
 function zaokraglij(wartosc: number) {
   const miejsca = Math.abs(wartosc) >= 100 || Number.isInteger(wartosc) ? 0 : Math.abs(wartosc) >= 1 ? 2 : 4
   return String(Number(wartosc.toFixed(miejsca))).replace(".", ",")

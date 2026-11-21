@@ -18,7 +18,6 @@ import { IkonaModulu } from "./IkonaModulu"
 
 type Props = {
   dzialka: DaneDzialki
-  // Bieżąca wycena (po zmianach cech) i wycena modelu na wyliczonych cechach.
   wycena: Wycena
   bazowa: Wycena
   uwagi: Uwaga[]
@@ -33,12 +32,10 @@ const KOLOR_PEWNOSCI: Record<string, "sukces" | "ostrzezenie" | "spadek"> = {
 export function Wynik({ dzialka, wycena, bazowa, uwagi }: Props) {
   const powierzchnia = Number(dzialka.powierzchnia.replace(",", "."))
   const zmieniona = Math.abs(wycena.cenaM2 - bazowa.cenaM2) > 0.005
-  // Kwoty dochodzą do wyniku po pokazaniu, a po zmianie cech płynnie do nowej wartości.
   const wartosc = useLicznik(wycena.cenaM2 * powierzchnia, 1100, 0)
   const cenaM2 = useLicznik(wycena.cenaM2, 1100, 0)
   const rozwiniecie = useLicznik(1, 900, 0)
 
-  // Skala paska: trochę szersza niż przedział, żeby było widać jego krańce.
   const skalaOd = wycena.przedzialOd * 0.85
   const skalaDo = wycena.przedzialDo * 1.15
   const procent = (wartosc: number) => ((wartosc - skalaOd) / (skalaDo - skalaOd)) * 100
@@ -92,7 +89,7 @@ export function Wynik({ dzialka, wycena, bazowa, uwagi }: Props) {
           </div>
           <span className="text-xs text-muted-foreground">
             {zaM2(wycena.przedzialOd)} – {zaM2(wycena.przedzialDo)}. Tak rozrzucone były prawdziwe ceny na
-            zbiorze testowym przy {wycena.koszyk === 0 ? "braku transakcji" : `${wycena.koszyk}+ transakcjach`} w 2 km.
+            zbiorze walidacyjnym przy {wycena.koszyk === 0 ? "braku transakcji" : `${wycena.koszyk}+ transakcjach`} w 2 km.
           </span>
         </div>
 

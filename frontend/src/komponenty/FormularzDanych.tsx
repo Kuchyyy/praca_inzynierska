@@ -46,17 +46,14 @@ import {
 } from "@/dane/slowniki"
 import type { DaneDzialki, Kolor, Podpowiedz } from "@/typy"
 
-// Grupy cech, które backend liczy sam po kliknięciu „Wyceń”. Z formularza pochodzi
-// pozostałe 30: powierzchnia, rodzaj gruntu, prawo, sprzedający i 26 flag przeznaczenia.
 const AUTOMATYCZNE: { kolor: Kolor; nazwa: string }[] = [
   { kolor: "sukces", nazwa: "Lokalizacja 5" },
   { kolor: "ostrzezenie", nazwa: "Otoczenie OSM 7" },
-  { kolor: "rynek", nazwa: "Sąsiedztwo cenowe 8" },
+  { kolor: "rynek", nazwa: "Sąsiedztwo cenowe 7" },
   { kolor: "akcja", nazwa: "Geometria 2" },
   { kolor: "model", nazwa: "Czas 2" },
 ]
 
-// Dwa sposoby wskazania działki, pokazywane zanim użytkownik wybierze pierwszą.
 const SPOSOBY_WYBORU: { ikona: LucideIcon; tytul: string; opis: string }[] = [
   { ikona: MousePointerClickIcon, tytul: "Kliknij na mapie", opis: "Przybliż mapę, aż pojawią się granice działek, i kliknij wybraną." },
   { ikona: PencilIcon, tytul: "Narysuj granicę", opis: "Gdy działki nie ma w ewidencji albo chcesz wycenić jej część." },
@@ -109,7 +106,6 @@ export function FormularzDanych({ dzialka, podpowiedz, onZmien, onWycen }: Props
     onZmien({ ...dzialka!, [pole]: wartosc })
   }
 
-  // Bez tych pięciu informacji wycena nie ma sensu.
   const powierzchnia = Number(dzialka.powierzchnia.replace(",", "."))
   const wymagane = [
     { nazwa: "powierzchnia", gotowe: powierzchnia > 0 },
@@ -352,7 +348,7 @@ export function FormularzDanych({ dzialka, podpowiedz, onZmien, onWycen }: Props
 
         <div className="flex flex-col gap-2 pb-4">
           <span className="text-xs text-muted-foreground">
-            Resztę z 54 cech program policzy sam po kliknięciu „Wyceń”:
+            Resztę z 53 cech program policzy sam po kliknięciu „Wyceń”:
           </span>
           <div className="flex flex-wrap gap-1.5">
             {AUTOMATYCZNE.map((g) => (

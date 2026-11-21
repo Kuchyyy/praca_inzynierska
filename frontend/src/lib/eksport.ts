@@ -1,9 +1,6 @@
 import { OPISY_CECH } from "@/dane/opisyCech"
 import type { DaneDzialki, WynikWyceny } from "@/typy"
 
-// Raport wyceny jako CSV dla Excela: średnik między kolumnami, przecinek dziesiętny,
-// znacznik BOM, żeby polskie znaki otworzyły się poprawnie.
-
 function komorka(wartosc: string | number | null | undefined) {
   if (wartosc === null || wartosc === undefined) {
     return ""
@@ -15,7 +12,6 @@ function komorka(wartosc: string | number | null | undefined) {
   return tekst
 }
 
-// Kwoty do groszy. Wartości cech zostają z czterema miejscami po przecinku.
 function grosze(wartosc: number) {
   return Math.round(wartosc * 100) / 100
 }
@@ -56,6 +52,5 @@ export function pobierzRaport(dzialka: DaneDzialki, wynik: WynikWyceny) {
   link.href = adres
   link.download = `wycena_${dzialka.identyfikator.replaceAll("/", "-")}_${dzialka.dataWyceny}.csv`
   link.click()
-  // Adres zwalniamy chwilę później: część przeglądarek zaczyna pobieranie dopiero po kliknięciu.
   setTimeout(() => URL.revokeObjectURL(adres), 1000)
 }

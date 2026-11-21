@@ -32,7 +32,6 @@ def granice_z_cache(identyfikatory, baza):
     granice = {}
     identyfikatory = list(dict.fromkeys(identyfikatory))
 
-    # SQLite przyjmuje ograniczoną liczbę parametrów w jednym zapytaniu.
     for start in range(0, len(identyfikatory), 900):
         czesc = identyfikatory[start:start + 900]
         znaki = ",".join("?" for _ in czesc)
@@ -56,7 +55,6 @@ def pobierz_granice(identyfikator):
     except (HTTPException, URLError, TimeoutError, OSError, UnicodeError):
         return None, "blad_sieci"
 
-    # Poprawna odpowiedź ma dwie linie: "0" i "identyfikator|SRID=2180;POLYGON(...)".
     if len(linie) != 2 or linie[0].strip() != "0" or "|" not in linie[1]:
         return None, "brak_wyniku"
 
